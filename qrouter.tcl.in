@@ -114,6 +114,18 @@ proc qrouter::standard_route {{filename ""} {doquit true}} {
 	    incr msize 10
 	}
     }
+    # Attempt a couple of runs at "mask none" if not solved yet
+    if {$result > 0} {
+	puts -nonewline stdout "*** Running stage2 routing"
+	puts stdout " with options mask none, effort 30"
+	set result [stage2 mask none effort 30]
+    }
+    if {$result > 0} {
+	puts -nonewline stdout "*** Running stage2 routing"
+	puts stdout " with options mask none, effort 40"
+	set result [stage2 mask none effort 40]
+    }
+
     # There is no point in running a cleanup stage if there are lots of
     # unrouted nets.
     if {$result < 10} {
