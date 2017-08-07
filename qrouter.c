@@ -1125,7 +1125,7 @@ dosecondstage(u_char graphdebug, u_char singlestep, u_char onlybreak, u_int effo
       progress[1] += failcount;
       progress[0]++;
       if (progress[0] > loceffort) {
-	 if ((progress[2] > 0) && (progress[2] < progress[1])) {
+	 if ((progress[2] > 0) && (progress[2] <= progress[1])) {
 	    Fprintf(stderr, "\nNo progress at level of effort %d;"
 			" ending 2nd stage.\n", loceffort);
 	    break;
@@ -1406,7 +1406,7 @@ int doroute(NET net, u_char stage, u_char graphdebug)
 	FailedNets = nlist;
      }
   }
-  return result;
+  return (unroutable > 0) ? -1 : result;
   
 } /* doroute() */
 

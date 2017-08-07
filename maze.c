@@ -1771,7 +1771,7 @@ route_set_connections(net, route)
 	    if (!match) continue;
 	    x = s->x1;
 	    y = s->y1;
-	    if (x == seg->x2 && y == seg->y2) {
+	    if (x == seg->x2 && y == seg->y2 && nr != route->start.route) {
 	       found = TRUE;
 	       route->end.route = nr;
 	       break;
@@ -1779,7 +1779,7 @@ route_set_connections(net, route)
 	    while (TRUE) {
 	       if (s->x2 != s->x1) x += ((s->x2 > s->x1) ? 1 : -1);
 	       if (s->y2 != s->y1) y += ((s->y2 > s->y1) ? 1 : -1);
-	       if (x == seg->x2 && y == seg->y2) {
+	       if (x == seg->x2 && y == seg->y2 && nr != route->start.route) {
 		  found = TRUE;
 		  route->end.route = nr;
 		  break;
