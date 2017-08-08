@@ -27,9 +27,9 @@ main(int argc, char *argv[])
     maskMode = MASK_AUTO;
     dofirststage(0, -1);
     maskMode = MASK_NONE;
-    result = dosecondstage(0, FALSE, (u_int)100);
+    result = dosecondstage(0, FALSE, FALSE, (u_int)100);
     if (result < 5)
-	dosecondstage(0, FALSE, (u_int)100);
+	dosecondstage(0, FALSE, FALSE, (u_int)100);
     write_def(NULL);
     return 0;
 }
