@@ -520,25 +520,29 @@ int write_delays(char *filename)
 	    eptinfo[nroute].route = rt;
 	    eptinfo[nroute].orig = rt;
 	    eptinfo[nroute].flags = (u_char)0;
+	    eptinfo[nroute].branching = NULL;
+	    eptinfo[nroute].startnode = NULL;
+	    eptinfo[nroute].endnode = NULL;
+
 	    /* Segment start */
 	    seg = rt->segments;
-	    eptinfo[nroute].startx = seg->x1;
-	    eptinfo[nroute].starty = seg->y1;
-	    eptinfo[nroute].startl = seg->layer;
-	    eptinfo[nroute].starttype = seg->segtype;
-	    eptinfo[nroute].startnode = NULL;
-	    eptinfo[nroute].branching = NULL;
-	    eptinfo[nroute].res = 0.0;
-	    eptinfo[nroute].cap = 0.0;
+            if (seg != NULL) {
+		eptinfo[nroute].startx = seg->x1;
+		eptinfo[nroute].starty = seg->y1;
+		eptinfo[nroute].startl = seg->layer;
+		eptinfo[nroute].starttype = seg->segtype;
+		eptinfo[nroute].res = 0.0;
+		eptinfo[nroute].cap = 0.0;
+	    }
 
 	    /* Segment end */
 	    for (seg = rt->segments; seg && seg->next; seg = seg->next);
-	    eptinfo[nroute].endx = seg->x2;
-	    eptinfo[nroute].endy = seg->y2;
-	    eptinfo[nroute].endl = seg->layer;
-	    eptinfo[nroute].endtype = seg->segtype;
-	    eptinfo[nroute].endnode = NULL;
-
+	    if (seg != NULL) {
+		eptinfo[nroute].endx = seg->x2;
+		eptinfo[nroute].endy = seg->y2;
+		eptinfo[nroute].endl = seg->layer;
+		eptinfo[nroute].endtype = seg->segtype;
+	    }
 	    nroute++;
 	}
 
@@ -555,6 +559,9 @@ int write_delays(char *filename)
 	    else
 		lastroute->next = newroute; 
 	    lastroute = newroute;
+	    newroute->segments = NULL;
+	    newroute->start.route = NULL;
+	    newroute->end.route = NULL;
 	    newroute->flags = (u_char)0;
 	    newroute->netnum = rt->netnum;
 	    eptinfo[i].route = newroute;
@@ -844,6 +851,14 @@ int write_delays(char *filename)
 	    eptinfo[nroute].flags = (u_char)0;
 	    /* Segment start */
 	    seg = rt->segments;
+	    if (seg == NULL) {
+		eptinfo[nroute].route = NULL;
+		eptinfo[nroute].startnode = NULL;
+		eptinfo[nroute].endnode = NULL;
+		eptinfo[nroute].branching = NULL;
+		nroute++;
+		continue;
+	    }
 	    eptinfo[nroute].startx = seg->x1;
 	    eptinfo[nroute].starty = seg->y1;
 	    eptinfo[nroute].startl = seg->layer;
@@ -988,7 +1003,9 @@ int write_delays(char *filename)
 	    free(rt);
 	    rt = nxroute;
 	}
-	for (i = 0; i < nroute; i++) free(eptinfo[i].branching);
+	for (i = 0; i < nroute; i++)
+	    if (eptinfo[i].branching != NULL)
+		free(eptinfo[i].branching);
 	free(eptinfo);
     }
     fclose(delayFile);

@@ -177,6 +177,12 @@ DefAddRoutes(FILE *f, float oscale, NET net, char special)
 		LefError("Unknown layer type \"%s\" for NEW route\n", token); 
 		continue;
 	    }
+            else if (routeLayer >= Num_layers)
+	    {
+		LefError("DEF file contains layer \"%s\" which is not allowed "
+			"by the layer limit setting of %d\n", token, Num_layers);
+		continue;
+	    }
 	    paintLayer = routeLayer;
 
 	    if (special == (char)1)
@@ -262,7 +268,8 @@ DefAddRoutes(FILE *f, float oscale, NET net, char special)
 		    LefError("Error: Via \"%s\" named but undefined.\n", token);
 		    paintLayer = routeLayer;
 		}
-		if ((special == (char)0) && (paintLayer >= 0)) {
+		if ((special == (char)0) && (paintLayer >= 0) &&
+				(paintLayer < Num_layers)) {
 
 		    newRoute = (SEG)malloc(sizeof(struct seg_));
 		    newRoute->segtype = ST_VIA;
@@ -286,8 +293,12 @@ DefAddRoutes(FILE *f, float oscale, NET net, char special)
 		    newRoute->next = routednet->segments;
 		    routednet->segments = newRoute;
 		}
-		else
-		    LefError("Via \"%s\" does not define a metal layer!\n", token);
+		else {
+		    if (paintLayer >= Num_layers)
+		        LefError("Via \"%s\" exceeds layer limit setting!\n", token);
+		    else
+		        LefError("Via \"%s\" does not define a metal layer!\n", token);
+		}
 	    }
 	    else
 		LefError("Via name \"%s\" unknown in route.\n", token);
@@ -403,7 +414,7 @@ DefAddRoutes(FILE *f, float oscale, NET net, char special)
 		      UserObs = drect;
 		   }
 		}
-		else if (paintLayer >= 0) {
+		else if ((paintLayer >= 0) && (paintLayer < Num_layers)) {
 		   newRoute = (SEG)malloc(sizeof(struct seg_));
 		   newRoute->segtype = ST_WIRE;
 		   newRoute->x1 = locarea.x1;
@@ -425,6 +436,9 @@ DefAddRoutes(FILE *f, float oscale, NET net, char special)
 		   }
 		   newRoute->next = routednet->segments;
 		   routednet->segments = newRoute;
+		}
+		else if (paintLayer >= Num_layers) {
+		    LefError("Route layer exceeds layer limit setting!\n");
 		}
 	    }
 
