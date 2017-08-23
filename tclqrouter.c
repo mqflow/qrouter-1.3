@@ -577,7 +577,7 @@ qrouter_start(ClientData clientData, Tcl_Interp *interp,
     char **argv;
 
     /* For compatibility with the original C code, convert Tcl	*/
-    /* object arguments to strings.  Break out "-s <name>",	*/
+    /* object arguments to strings.  Handle "-s <name>",	*/
     /* which is not handled by runqrouter(), and source the	*/
     /* script <name> between runqrouter() and read_def().	*/
 
@@ -585,9 +585,8 @@ qrouter_start(ClientData clientData, Tcl_Interp *interp,
     argc = 0;
     for (i = 1; i < objc; i++) {
 	if (!strcmp(Tcl_GetString(objv[i]), "-s"))
-	    scriptfile = strdup(Tcl_GetString(objv[++i]));
-	else
-	    argv[argc++] = strdup(Tcl_GetString(objv[i]));
+	    scriptfile = strdup(Tcl_GetString(objv[i + 1]));
+	argv[argc++] = strdup(Tcl_GetString(objv[i]));
     }
 
     result = runqrouter(argc, argv);

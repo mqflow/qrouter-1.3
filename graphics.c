@@ -579,7 +579,7 @@ int GUI_init(Tcl_Interp *interp)
 {
    Tk_Window tkwind, tktop;
    static char *qrouterdrawdefault = ".qrouter";
-   char *qrouterdrawwin;
+   char *qrouterdrawwin, *waitcmd;
    XColor cvcolor, cvexact;
    int i;
    float frac;
@@ -666,6 +666,13 @@ int GUI_init(Tcl_Interp *interp)
       XAllocColor(dpy, cmap, &cvcolor);
       bluevector[i] = cvcolor.pixel;
    }
+
+   /* Wait on window to be created */
+   waitcmd = (char *)malloc(strlen(qrouterdrawwin) + 20);
+   sprintf(waitcmd, "tkwait visibility %s", qrouterdrawwin);
+   Tcl_Eval(interp, waitcmd);
+   free(waitcmd);
+
    return TCL_OK;	/* proceed to interpreter */
 }
 

@@ -215,6 +215,7 @@ runqrouter(int argc, char *argv[])
    char *dotptr;
    char *Filename = NULL;
    u_char readconfig = FALSE;
+   u_char doscript = FALSE;
     
    Scales.iscale = 1;
    Scales.mscale = 100;
@@ -240,6 +241,7 @@ runqrouter(int argc, char *argv[])
 	    case 'p':
 	    case 'g':
 	    case 'r':
+	    case 's':
 	       argsep = *(argv[i] + 2);
 	       if (argsep == '\0') {
 		  i++;
@@ -283,6 +285,11 @@ runqrouter(int argc, char *argv[])
 	    case 'g':
 	       gndnet = strdup(optarg);
 	       break;
+	    case 's':
+	       // The "-s" argument is not handled here but is used
+	       // to avoid generating a warning message.
+	       doscript = TRUE;
+	       break;
 	    case 'r':
 	       if (sscanf(optarg, "%d", &Scales.iscale) != 1) {
 		   Fprintf(stderr, "Bad resolution scalefactor \"%s\", "
@@ -304,6 +311,9 @@ runqrouter(int argc, char *argv[])
 	       break;
 	    case 'e':
 	       minEffort = atoi(optarg);
+	       break;
+	    case 'n':
+	       /* Ignore '-noc' or '-nog', handled elsewhere */
 	       break;
 	    case '\0':
 	       /* Ignore '-' */
@@ -332,19 +342,21 @@ runqrouter(int argc, char *argv[])
 #endif
    }
 
-   configFILEptr = fopen(configfile, "r");
+   if (!doscript) {
+      configFILEptr = fopen(configfile, "r");
 
-   if (configFILEptr) {
-       read_config(configFILEptr, (infoFILEptr == NULL) ? FALSE : TRUE);
-       readconfig = TRUE;
+      if (configFILEptr) {
+          read_config(configFILEptr, (infoFILEptr == NULL) ? FALSE : TRUE);
+          readconfig = TRUE;
+      }
+      else {
+         if (configfile != configdefault)
+	    Fprintf(stderr, "Could not open %s\n", configfile );
+         else
+	    Fprintf(stdout, "No .cfg file specified, continuing without.\n");
+      }
+      if (configfile != configdefault) free(configfile);
    }
-   else {
-      if (configfile != configdefault)
-	 Fprintf(stderr, "Could not open %s\n", configfile );
-      else
-	 Fprintf(stdout, "No .cfg file specified, continuing without.\n");
-   }
-   if (configfile != configdefault) free(configfile);
 
    if (infoFILEptr != NULL) {
 
