@@ -124,11 +124,13 @@ add_route_to_endpoint(endpointinfo *eptinfo, int eidx, int didx)
 /*--------------------------------------------------------------*/
 /* Check for a route segment that is downstream of the current	*/
 /* segment (walkseg), and if found, process it.			*/
+/* "end" is 0 if checking downstream of the driver node.  Every	*/
+/* other check is from the end node of a route, and "end" is 1.	*/
 /*--------------------------------------------------------------*/
 
 void
 check_downstream(SEG walkseg, endpointinfo *eptinfo, int eidx,
-	int numroutes, lefrcinfo *lefrcvalues)
+	int numroutes, lefrcinfo *lefrcvalues, u_char end)
 {
     int i;
     int startcompat, endcompat;
@@ -215,8 +217,7 @@ check_downstream(SEG walkseg, endpointinfo *eptinfo, int eidx,
     /* which a two paths may connect to a node at two different		*/
     /* locations.							*/
 
-    nodeptr = (walkseg == eptinfo[eidx].route->segments) ?
-		eptinfo[eidx].startnode : eptinfo[eidx].endnode;
+    nodeptr = (end == 0) ? eptinfo[eidx].startnode : eptinfo[eidx].endnode;
 
     if (nodeptr != NULL) {
 	for (i = 0; i < numroutes; i++) {
@@ -323,7 +324,7 @@ walk_route(int eidx, int driverend, endpointinfo *eptinfo,
     /* if it is the driver.						*/
 
     if (eptinfo[eidx].flags & EPT_DRIVER)
-	check_downstream(firstseg, eptinfo, eidx, numroutes, lefrcvalues);
+	check_downstream(firstseg, eptinfo, eidx, numroutes, lefrcvalues, (u_char)0);
 
     /* Walk the route segment and accumulate R and C */
 
@@ -357,7 +358,7 @@ walk_route(int eidx, int driverend, endpointinfo *eptinfo,
     }
 
     /* Check for downstream nodes from the last route point */
-    check_downstream(lastseg, eptinfo, eidx, numroutes, lefrcvalues);
+    check_downstream(lastseg, eptinfo, eidx, numroutes, lefrcvalues, (u_char)1);
 }
 
 /*--------------------------------------------------------------*/
