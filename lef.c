@@ -2390,10 +2390,10 @@ LefReadLayerSection(f, lname, mode, lefl)
 		if (token && (*token != ';')) {
 		    sscanf(token, "%lg", &dvalue);
 		    lefl->info.route.pitchy = dvalue / (double)oscale;
+		    LefEndStatement(f);
 		}
 		else {
 		    lefl->info.route.pitchy = lefl->info.route.pitchx;
-		    LefEndStatement(f);
 		}
 
 		/* Offset default is 1/2 the pitch.  Offset is		*/
@@ -2402,7 +2402,7 @@ LefReadLayerSection(f, lname, mode, lefl)
 		if (lefl->info.route.offsetx < 0.0)
 		    lefl->info.route.offsetx = lefl->info.route.pitchx / 2.0;
 		if (lefl->info.route.offsety < 0.0)
-		    lefl->info.route.offsety = lefl->info.route.pitchx / 2.0;
+		    lefl->info.route.offsety = lefl->info.route.pitchy / 2.0;
 		break;
 	    case LEF_LAYER_DIRECTION:
 		token = LefNextToken(f, TRUE);
@@ -2419,10 +2419,10 @@ LefReadLayerSection(f, lname, mode, lefl)
 		if (token && (*token != ';')) {
 		    sscanf(token, "%lg", &dvalue);
 		    lefl->info.route.offsety = dvalue / (double)oscale;
+		    LefEndStatement(f);
 		}
 		else {
 		    lefl->info.route.offsety = lefl->info.route.offsetx;
-		    LefEndStatement(f);
 		}
 		break;
 	    case LEF_LAYER_RES:
