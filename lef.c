@@ -693,14 +693,49 @@ double
 LefGetRouteOffset(int layer)
 {
     LefList lefl;
+    u_char o;
 
     lefl = LefFindLayerByNum(layer);
     if (lefl) {
 	if (lefl->lefClass == CLASS_ROUTE) {
-	    return lefl->info.route.offset;
+	    o = lefl->info.route.hdirection;
+            if (o == TRUE)
+	        return lefl->info.route.offsety;
+	    else
+	        return lefl->info.route.offsetx;
 	}
     }
     return MIN(PitchX[layer], PitchY[layer]) / 2.0;
+}
+
+double
+LefGetRouteOffsetX(int layer)
+{
+    LefList lefl;
+    u_char o;
+
+    lefl = LefFindLayerByNum(layer);
+    if (lefl) {
+	if (lefl->lefClass == CLASS_ROUTE) {
+	    return lefl->info.route.offsetx;
+	}
+    }
+    return PitchX[layer] / 2.0;
+}
+
+double
+LefGetRouteOffsetY(int layer)
+{
+    LefList lefl;
+    u_char o;
+
+    lefl = LefFindLayerByNum(layer);
+    if (lefl) {
+	if (lefl->lefClass == CLASS_ROUTE) {
+	    return lefl->info.route.offsety;
+	}
+    }
+    return PitchY[layer] / 2.0;
 }
 
 /*
@@ -835,23 +870,68 @@ LefGetRouteWideSpacing(int layer, double width)
 }
 
 /*
- *------------------------------------------------------------
- * Get the route pitch for a given layer
- *------------------------------------------------------------
+ *-----------------------------------------------------------------
+ * Get the route pitch in the preferred direction for a given layer
+ *-----------------------------------------------------------------
  */
 
 double
 LefGetRoutePitch(int layer)
 {
     LefList lefl;
+    u_char o;
 
     lefl = LefFindLayerByNum(layer);
     if (lefl) {
 	if (lefl->lefClass == CLASS_ROUTE) {
-	    return lefl->info.route.pitch;
+	    o = lefl->info.route.hdirection;
+            if (o == TRUE)
+		return lefl->info.route.pitchy;
+	    else
+		return lefl->info.route.pitchx;
 	}
     }
     return MIN(PitchX[layer], PitchY[layer]);
+}
+
+/*
+ *------------------------------------------------------------
+ * Get the route pitch in X for a given layer
+ *------------------------------------------------------------
+ */
+
+double
+LefGetRoutePitchX(int layer)
+{
+    LefList lefl;
+
+    lefl = LefFindLayerByNum(layer);
+    if (lefl) {
+	if (lefl->lefClass == CLASS_ROUTE) {
+	    return lefl->info.route.pitchx;
+	}
+    }
+    return PitchX[layer];
+}
+
+/*
+ *------------------------------------------------------------
+ * Get the route pitch in Y for a given layer
+ *------------------------------------------------------------
+ */
+
+double
+LefGetRoutePitchY(int layer)
+{
+    LefList lefl;
+
+    lefl = LefFindLayerByNum(layer);
+    if (lefl) {
+	if (lefl->lefClass == CLASS_ROUTE) {
+	    return lefl->info.route.pitchy;
+	}
+    }
+    return PitchY[layer];
 }
 
 /*
@@ -2156,10 +2236,12 @@ LefReadLayerSection(f, lname, mode, lefl)
 
 			lefl->info.route.width = 0.0;
 			lefl->info.route.spacing = NULL;
-			lefl->info.route.pitch = 0.0;
+			lefl->info.route.pitchx = 0.0;
+			lefl->info.route.pitchy = 0.0;
 			// Use -1.0 as an indication that offset has not
 			// been specified and needs to be set to default.
-			lefl->info.route.offset = -1.0;
+			lefl->info.route.offsetx = -1.0;
+			lefl->info.route.offsety = -1.0;
 			lefl->info.route.hdirection = (u_char)0;
 
 			/* A routing type has been declared.  Assume	*/
@@ -2302,14 +2384,25 @@ LefReadLayerSection(f, lname, mode, lefl)
 	    case LEF_LAYER_PITCH:
 		token = LefNextToken(f, TRUE);
 		sscanf(token, "%lg", &dvalue);
-		lefl->info.route.pitch = dvalue / (double)oscale;
+		lefl->info.route.pitchx = dvalue / (double)oscale;
+
+		token = LefNextToken(f, TRUE);
+		if (token && (*token != ';')) {
+		    sscanf(token, "%lg", &dvalue);
+		    lefl->info.route.pitchy = dvalue / (double)oscale;
+		}
+		else {
+		    lefl->info.route.pitchy = lefl->info.route.pitchx;
+		    LefEndStatement(f);
+		}
 
 		/* Offset default is 1/2 the pitch.  Offset is		*/
 		/* intialized to -1 to tell whether or not the value	*/
 		/* has been set by an OFFSET statement.			*/
-		if (lefl->info.route.offset < 0.0)
-		    lefl->info.route.offset = lefl->info.route.pitch / 2.0;
-		LefEndStatement(f);
+		if (lefl->info.route.offsetx < 0.0)
+		    lefl->info.route.offsetx = lefl->info.route.pitchx / 2.0;
+		if (lefl->info.route.offsety < 0.0)
+		    lefl->info.route.offsety = lefl->info.route.pitchx / 2.0;
 		break;
 	    case LEF_LAYER_DIRECTION:
 		token = LefNextToken(f, TRUE);
@@ -2320,8 +2413,17 @@ LefReadLayerSection(f, lname, mode, lefl)
 	    case LEF_LAYER_OFFSET:
 		token = LefNextToken(f, TRUE);
 		sscanf(token, "%lg", &dvalue);
-		lefl->info.route.offset = dvalue / (double)oscale;
-		LefEndStatement(f);
+		lefl->info.route.offsetx = dvalue / (double)oscale;
+
+		token = LefNextToken(f, TRUE);
+		if (token && (*token != ';')) {
+		    sscanf(token, "%lg", &dvalue);
+		    lefl->info.route.offsety = dvalue / (double)oscale;
+		}
+		else {
+		    lefl->info.route.offsety = lefl->info.route.offsetx;
+		    LefEndStatement(f);
+		}
 		break;
 	    case LEF_LAYER_RES:
 		token = LefNextToken(f, TRUE);

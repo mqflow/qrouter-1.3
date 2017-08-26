@@ -57,8 +57,10 @@ typedef struct _lefSpacingRule {
 typedef struct {
     lefSpacingRule *spacing;	/* spacing rules, ordered by width */
     double  width;	/* nominal route width, in microns */
-    double  pitch;	/* route pitch, in microns */
-    double  offset;	/* route track offset from origin, in microns */
+    double  pitchx;	/* route X pitch, in microns */
+    double  pitchy;	/* route Y pitch, in microns */
+    double  offsetx;	/* route track offset from X origin, in microns */
+    double  offsety;	/* route track offset from Y origin, in microns */
     double  respersq;	/* resistance per square */
     double  areacap;	/* area capacitance per square micron */
     double  edgecap;	/* edge capacitance per micron */
