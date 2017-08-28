@@ -1958,23 +1958,31 @@ qrouter_layerinfo(ClientData clientData, Tcl_Interp *interp,
 /*	  the rotation is swapped relative to the grid	*/
 /*	  positions used in the non-inverted case.	*/
 /*							*/
+/* use: List of names of vias to use.  If any via not	*/
+/*	in this list is found when reading a .lef file	*/
+/*	it will be ignored.				*/
+/*							*/
 /* Options:						*/
 /*							*/
 /*	via stack [none|all|<value>]			*/
 /*	via pattern [normal|inverted]			*/
+/*	via use <via_name> [<via_name> ...]		*/
 /*------------------------------------------------------*/
 
 static int
 qrouter_via(ClientData clientData, Tcl_Interp *interp,
             int objc, Tcl_Obj *CONST objv[])
 {
-    int idx, idx2, result, value;
+    int idx, idx2, result, value, i;
+    char *vname;
+    Tcl_Obj *lobj;
+    LinkedStringPtr viaName, newVia;
 
     static char *subCmds[] = {
-	"stack", "pattern", NULL
+	"stack", "pattern", "use", NULL
     };
     enum SubIdx {
-	StackIdx, PatternIdx
+	StackIdx, PatternIdx, UseIdx
     };
    
     static char *stackSubCmds[] = {
@@ -1985,7 +1993,7 @@ qrouter_via(ClientData clientData, Tcl_Interp *interp,
     };
 
     static char *patternSubCmds[] = {
-	"none", "normal", "invert", NULL
+	"none", "normal", "inverted", NULL
     };
     enum patternSubIdx {
 	PatNoneIdx, PatNormalIdx, PatInvertIdx
@@ -2006,6 +2014,15 @@ qrouter_via(ClientData clientData, Tcl_Interp *interp,
 		    Tcl_SetObjResult(interp,
 				Tcl_NewStringObj(
 				patternSubCmds[ViaPattern + 1], -1));
+		    break;
+		case UseIdx:
+		    /* Return list of vias to use */
+		    lobj = Tcl_NewListObj(0, NULL);
+		    for (viaName = AllowedVias; viaName; viaName = viaName->next) {
+			Tcl_ListObjAppendElement(interp, lobj,
+				Tcl_NewStringObj(viaName->name, -1));
+		    }
+		    Tcl_SetObjResult(interp, lobj);
 		    break;
 	    }
 	}
@@ -2039,6 +2056,24 @@ qrouter_via(ClientData clientData, Tcl_Interp *interp,
 				0, &idx2)) != TCL_OK)
 			return result;
 		    ViaPattern = idx2 - 1;
+		    break;
+		case UseIdx:
+		    /* Create list of vias to use */
+		    for (i = 2; i < objc; i++) {
+			vname = Tcl_GetString(objv[i]);
+			/* First check if name is in list already */
+			for (viaName = AllowedVias; viaName; viaName = viaName->next) {
+			    if (!strcmp(vname, viaName->name))
+				break;
+			}	
+			if (viaName != NULL) continue;
+			newVia = (LinkedStringPtr)malloc(sizeof(LinkedString));
+			newVia->name = strdup(vname);
+			newVia->next = AllowedVias;
+			AllowedVias = newVia;
+		    }
+		    /* Regenerate the ViaX and ViaY lists */
+		    LefAssignLayerVias();
 		    break;
 	    }
 	}

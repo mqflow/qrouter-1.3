@@ -76,6 +76,15 @@ typedef int (*__compar_fn_t)(const void*, const void*);
 #define VIA_PATTERN_NORMAL	 0
 #define VIA_PATTERN_INVERT	 1
 
+// linked list structure for holding a list of char * strings
+
+typedef struct linkedstring_ *LinkedStringPtr;
+
+typedef struct linkedstring_ {
+   char *name;
+   LinkedStringPtr next;
+} LinkedString;
+
 // structure holding input and output scalefactors
 
 typedef struct scalerec_ {

@@ -37,10 +37,13 @@
 /* ---------------------------------------------------------------------*/
 
 /* Current line number for reading */
-int lefCurrentLine;
+int lefCurrentLine = 0;
 
 /* Information about routing layers */
-LefList LefInfo;
+LefList LefInfo = NULL;
+
+/* Information about what vias to use */
+LinkedStringPtr AllowedVias = NULL;
 
 /* Gate information is in the linked list GateInfo, imported */
 
@@ -2489,6 +2492,95 @@ LefReadLayerSection(f, lname, mode, lefl)
     }
 }
 
+/*----------------------------------------------------------------*/
+/* This routine runs through all the defined vias, from last to	  */
+/* first defined.  Check the X vs. Y dimension of the base layer. */
+/* If X is longer, save as ViaX.  If Y is longer, save as ViaY.   */
+/* If there is an AllowedVias list, then only assign vias that	  */
+/* are in the list.						  */
+/*----------------------------------------------------------------*/
+
+void
+LefAssignLayerVias()
+{
+    LefList lefl;
+    int layer;
+    double xydiff;
+    DSEG grect;
+    LinkedStringPtr viaName;
+    char *newViaX[MAX_LAYERS];
+    char *newViaY[MAX_LAYERS];
+
+    for (layer = 0; layer < MAX_LAYERS; layer++) {
+	newViaX[layer] = newViaY[layer] = NULL;
+    }
+
+    for (lefl = LefInfo; lefl; lefl = lefl->next) {
+	if (lefl->lefClass == CLASS_VIA) {
+	    if (lefl->info.via.lr) {
+		layer = MAX_LAYERS;
+		if (lefl->info.via.area.layer >= 0) {
+		   layer = lefl->info.via.area.layer;
+		   xydiff = (lefl->info.via.area.x2 - lefl->info.via.area.x1) -
+			(lefl->info.via.area.y2 - lefl->info.via.area.y1);
+		}
+
+		for (grect = lefl->info.via.lr; grect; grect = grect->next) {
+		    if (grect->layer >= 0 && grect->layer < layer) {
+			layer = grect->layer;
+			xydiff = (grect->x2 - grect->x1) - (grect->y2 - grect->y1);
+		    }
+		}
+		if (layer < MAX_LAYERS) {
+		    /* Assign only to layers in AllowedVias, if it is non-NULL */
+		    if (AllowedVias != NULL) {
+			for (viaName = AllowedVias; viaName; viaName = viaName->next) {
+			    if (!strcmp(viaName->name, lefl->lefName))
+				break;
+			}
+			if (viaName == NULL) continue;
+		    }
+		    if (xydiff > -EPS) {
+			if (newViaX[layer] != NULL) free(newViaX[layer]);
+			newViaX[layer] = strdup(lefl->lefName);      
+		    }
+		    else {
+			if (newViaY[layer] != NULL) free(newViaY[layer]);
+			newViaY[layer] = strdup(lefl->lefName);
+		    }
+		}
+	    }
+	}
+    }
+
+    /* Copy newViaX and newViaY back into viaX and viaY, making */
+    /* sure that at least one entry exists for each layer.	*/
+
+    /* At this time, only ViaX[] reports values back in		*/
+    /* LefGetViaWidth(), so make sure that if there is only one	*/
+    /* allowed via for a layer, it is copied into the ViaX	*/
+    /* array, regardless of its orientation.			*/
+
+    for (layer = 0; layer < MAX_LAYERS; layer++) {
+	if ((newViaX[layer] == NULL) && (newViaY[layer] == NULL))
+	    continue;
+	if (ViaX[layer] != NULL) free(ViaX[layer]);
+	if (ViaY[layer] != NULL) free(ViaY[layer]);
+
+	if (newViaX[layer] != NULL)
+	    ViaX[layer] = strdup(newViaX[layer]);
+	else
+	    ViaX[layer] = strdup(newViaY[layer]);
+	if (newViaY[layer] != NULL)
+	    ViaY[layer] = strdup(newViaY[layer]);
+    }
+
+    for (layer = 0; layer < MAX_LAYERS; layer++) {
+	if (newViaX[layer] != NULL) free(newViaX[layer]);
+	if (newViaY[layer] != NULL) free(newViaY[layer]);
+    }
+}
+
 /*
  *------------------------------------------------------------
  *
@@ -2617,6 +2709,7 @@ LefRead(inName)
 	    case LEF_SECTION_VIARULE:
 		token = LefNextToken(f, TRUE);
 		sprintf(tsave, "%.127s", token);
+
 		lefl = LefFindLayer(token);
 		if (lefl == NULL)
 		{
@@ -2779,41 +2872,12 @@ LefRead(inName)
     /* the strings used for route output, overriding any information	*/
     /* that may have been in the route.cfg file.			*/
 
-    /* Note that this runs through all the defined vias, from last to	*/
-    /* first defined.  Check the X vs. Y dimension of the base layer.	*/
-    /* If X is longer, save as ViaX.  If Y is longer, save as ViaY.	*/
-
     for (lefl = LefInfo; lefl; lefl = lefl->next) {
 	if (lefl->lefClass == CLASS_ROUTE) {
 	    strcpy(CIFLayer[lefl->type], lefl->lefName);
 	}
-	else if (lefl->lefClass == CLASS_VIA) {
-	    if (lefl->info.via.lr) {
-		layer = MAX_LAYERS;
-		if (lefl->info.via.area.layer >= 0) {
-		   layer = lefl->info.via.area.layer;
-		   xydiff = (lefl->info.via.area.x2 - lefl->info.via.area.x1) -
-			(lefl->info.via.area.y2 - lefl->info.via.area.y1);
-		}
-
-		for (grect = lefl->info.via.lr; grect; grect = grect->next) {
-		    if (grect->layer >= 0 && grect->layer < layer) {
-			layer = grect->layer;
-			xydiff = (grect->x2 - grect->x1) - (grect->y2 - grect->y1);
-		    }
-		}
-		if (layer < MAX_LAYERS) {
-		    if (xydiff > -EPS) {
-			free(ViaX[layer]);
-			ViaX[layer] = strdup(lefl->lefName);      
-		    }
-		    else {
-			if (ViaY[layer] != NULL) free(ViaY[layer]);
-			ViaY[layer] = strdup(lefl->lefName);
-		    }
-		}
-	    }
-	}
     }
+    LefAssignLayerVias();
+
     return oprecis;
 }

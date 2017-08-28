@@ -111,6 +111,7 @@ typedef struct _lefLayer {
 /* External declaration of global variables */
 extern int lefCurrentLine;
 extern LefList LefInfo;
+extern LinkedStringPtr AllowedVias;
 
 /* Forward declarations */
 
@@ -149,6 +150,7 @@ GATE   LefFindInstance(char *name);
 void   LefHashCell(GATE gateginfo);
 
 int    LefRead(char *inName);
+void   LefAssignLayerVias();
 
 void LefError(char *fmt, ...);	/* Variable argument procedure requires */
 				/* parameter list.			*/
