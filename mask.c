@@ -704,9 +704,9 @@ void createMask(NET net, u_char slack, u_char halo)
      dtap = (n1->taps == NULL) ? n1->extend : n1->taps;
      if (!dtap) continue;
 
-     if (orient | 1) 	// Horizontal trunk, vertical branches
+     if (orient & 1) 	// Horizontal trunk, vertical branches
 	create_vbranch_mask(n1->branchx, n1->branchy, ycent, slack, halo);
-     if (orient | 2) 	// Vertical trunk, horizontal branches
+     if (orient & 2) 	// Vertical trunk, horizontal branches
 	create_hbranch_mask(n1->branchy, n1->branchx, xcent, slack, halo);
   }
 
@@ -715,7 +715,7 @@ void createMask(NET net, u_char slack, u_char halo)
   // the branch end that is closer to the trunk and the branch that
   // is its nearest neighbor.
 
-  if (orient | 1) {	// Horizontal trunk, vertical branches
+  if (orient & 1) {	// Horizontal trunk, vertical branches
      for (n1 = net->netnodes; n1; n1 = n1->next) {
 	for (n2 = net->netnodes->next; n2; n2 = n2->next) {
 
@@ -740,7 +740,7 @@ void createMask(NET net, u_char slack, u_char halo)
         }
      }
   }
-  if (orient | 2) {		// Vertical trunk, horizontal branches
+  if (orient & 2) {		// Vertical trunk, horizontal branches
      for (n1 = net->netnodes; n1; n1 = n1->next) {
 	for (n2 = net->netnodes->next; n2; n2 = n2->next) {
 
