@@ -44,6 +44,7 @@ Dimension width, height;
 int spacing;
 int bluepix, greenpix, redpix, cyanpix, orangepix, goldpix;
 int blackpix, whitepix, graypix, ltgraypix, yellowpix;
+int tealpix, mauvepix, tanpix;
 int magentapix, purplepix, greenyellowpix;
 int brownvector[SHORTSPAN];
 int bluevector[LONGSPAN];
@@ -395,6 +396,18 @@ void draw_net(NET net, u_char single, int *lastlayer) {
 		    case 3:
 			XSetForeground(dpy, gc, goldpix);
 			break;
+		    case 4:
+			XSetForeground(dpy, gc, orangepix);
+			break;
+		    case 5:
+			XSetForeground(dpy, gc, tealpix);
+			break;
+		    case 6:
+			XSetForeground(dpy, gc, mauvepix);
+			break;
+		    case 7:
+			XSetForeground(dpy, gc, tanpix);
+			break;
 		    default:
 			XSetForeground(dpy, gc, greenpix);
 			break;
@@ -638,6 +651,13 @@ int GUI_init(Tcl_Interp *interp)
    magentapix = cvcolor.pixel;
    XAllocNamedColor(dpy, cmap, "GreenYellow", &cvcolor, &cvexact);
    greenyellowpix = cvcolor.pixel;
+   XAllocNamedColor(dpy, cmap, "teal", &cvcolor, &cvexact);
+   tealpix = cvcolor.pixel;
+   XAllocNamedColor(dpy, cmap, "MediumVioletRed", &cvcolor, &cvexact);
+   mauvepix = cvcolor.pixel;
+   XAllocNamedColor(dpy, cmap, "tan1", &cvcolor, &cvexact);
+   tanpix = cvcolor.pixel;
+
    blackpix = BlackPixel(dpy,DefaultScreen(dpy));
    whitepix = WhitePixel(dpy,DefaultScreen(dpy));
 
