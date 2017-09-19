@@ -612,13 +612,14 @@ void createMask(NET net, u_char slack, u_char halo)
   int i, j, orient;
   int dx, dy, gx1, gx2, gy1, gy2;
   int xcent, ycent, xmin, ymin, xmax, ymax;
+  int oxmin, oymin, oxmax, oymax;
 
   fillMask((u_char)halo);
 
-  xmin = net->xmin;
-  xmax = net->xmax;
-  ymin = net->ymin;
-  ymax = net->ymax;
+  oxmin = net->xmin;
+  oxmax = net->xmax;
+  oymin = net->ymin;
+  oymax = net->ymax;
 
   xcent = net->trunkx;
   ycent = net->trunky;
@@ -633,6 +634,8 @@ void createMask(NET net, u_char slack, u_char halo)
 
      ycent = analyzeCongestion(net->trunky, ymin, ymax, xmin, xmax);
      ymin = ymax = ycent;
+     xmin = oxmin;
+     xmax = oxmax;
 
      for (i = xmin - slack; i <= xmax + slack; i++) {
 	if (i < 0 || i >= NumChannelsX[0]) continue;
@@ -667,6 +670,8 @@ void createMask(NET net, u_char slack, u_char halo)
      // Vertical trunk
      orient |= 2;
      xmin = xmax = xcent;
+     ymin = oymin;
+     ymax = oymax;
 
      for (i = xcent - slack; i <= xcent + slack; i++) {
 	if (i < 0 || i >= NumChannelsX[0]) continue;
@@ -777,7 +782,7 @@ void createMask(NET net, u_char slack, u_char halo)
   if (Verbose > 2) {
      if (net->numnodes == 2)
         Fprintf(stdout, "Two-port mask has bounding box (%d %d) to (%d %d)\n",
-			xmin, ymin, xmax, ymax);
+			oxmin, oymin, oxmax, oymax);
      else
         Fprintf(stdout, "multi-port mask has trunk line (%d %d) to (%d %d)\n",
 			xmin, ymin, xmax, ymax);
