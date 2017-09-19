@@ -734,6 +734,8 @@ void create_obstructions_from_gates(void)
 
 		         // If it clears distance for a route layer but not
 		         // vias, then block vias only.
+			 /* (This is restrictive and unnecessary) */
+			 /*
 		         deltaxy = get_route_clear(ds->layer, ds);
 		         if (((dx - EPS) <= (ds->x1 - deltaxy)) ||
 				((dx + EPS) >= (ds->x2 + deltaxy)) ||
@@ -743,7 +745,8 @@ void create_obstructions_from_gates(void)
 			    block_route(gridx, gridy, ds->layer, DOWN);
 		         }
 		         else
-			    check_obstruct(gridx, gridy, ds, dx, dy);
+			 */
+			 check_obstruct(gridx, gridy, ds, dx, dy);
 		      }
 		      else {
 			 edist = 0;	// diagnostic break
@@ -818,6 +821,8 @@ void create_obstructions_from_gates(void)
 
 		               // If it clears distance for a route layer but not
 		               // vias, then block vias only.
+			       /* (This is restrictive and unnecessary) */
+			       /*
 		               deltaxy = get_route_clear(ds->layer, ds);
 		               if (((dx - EPS) < (ds->x1 - deltaxy)) ||
 					((dx + EPS) > (ds->x2 + deltaxy)) ||
@@ -827,7 +832,8 @@ void create_obstructions_from_gates(void)
 			          block_route(gridx, gridy, ds->layer, DOWN);
 		               }
 		               else
-			          check_obstruct(gridx, gridy, ds, dx, dy);
+			       */
+			       check_obstruct(gridx, gridy, ds, dx, dy);
 			    }
 			 }
 		         gridy++;
