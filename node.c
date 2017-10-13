@@ -80,7 +80,7 @@ count_reachable_taps()
     NODEINFO lnode;
     GATE g;
     DSEG ds;
-    int l, i, j;
+    int l, i, j, orient;
     int gridx, gridy;
     double deltax, deltay;
     double dx, dy;
@@ -108,56 +108,69 @@ count_reachable_taps()
 	    if (node == NULL) continue;
 	    if (node->numnodes == 0) continue;	 // e.g., vdd or gnd bus
 	    if (node->numtaps == 0) {
-		Fprintf(stderr, "Error: Node %s of net \"%s\" has no taps!\n",
-			print_node_name(node), node->netname);
 
-		for (ds = g->taps[i]; ds; ds = ds->next) {
-		    deltax = 0.5 * LefGetViaWidth(ds->layer, ds->layer, 0);
-		    deltay = 0.5 * LefGetViaWidth(ds->layer, ds->layer, 1);
+		/* Will try more than one via if available */
+		for (orient = 0; orient < 2; orient++) {
+		    for (ds = g->taps[i]; ds; ds = ds->next) {
+			deltax = 0.5 * LefGetXYViaWidth(ds->layer, ds->layer, 0, orient);
+			deltay = 0.5 * LefGetXYViaWidth(ds->layer, ds->layer, 1, orient);
 
-		    gridx = (int)((ds->x1 - Xlowerbound) / PitchX[ds->layer]) - 1;
-		    while (1) {
-			dx = (gridx * PitchX[ds->layer]) + Xlowerbound;
-			if (dx > ds->x2 || gridx >= NumChannelsX[ds->layer]) break;
+			gridx = (int)((ds->x1 - Xlowerbound) / PitchX[ds->layer]) - 1;
+			while (1) {
+			    dx = (gridx * PitchX[ds->layer]) + Xlowerbound;
+			    if (dx > ds->x2 || gridx >= NumChannelsX[ds->layer]) break;
 
-			if (((dx - ds->x1 + EPS) > deltax) &&
-				((ds->x2 - dx + EPS) > deltax)) {
-			    gridy = (int)((ds->y1 - Ylowerbound)
+			    if (((dx - ds->x1 + EPS) > deltax) &&
+					((ds->x2 - dx + EPS) > deltax)) {
+				gridy = (int)((ds->y1 - Ylowerbound)
 					/ PitchY[ds->layer]) - 1;
-			    while (1) {
-				dy = (gridy * PitchY[ds->layer]) + Ylowerbound;
-				if (dy > ds->y2 || gridy >= NumChannelsY[ds->layer])
-				    break;
+				while (1) {
+				    dy = (gridy * PitchY[ds->layer]) + Ylowerbound;
+				    if (dy > ds->y2 || gridy >= NumChannelsY[ds->layer])
+					break;
 
-				if (((dy - ds->y1 + EPS) > deltay) &&
-					((ds->y2 - dy + EPS) > deltay)) {
+				    if (((dy - ds->y1 + EPS) > deltay) &&
+						((ds->y2 - dy + EPS) > deltay)) {
 
-				    if ((ds->layer == Num_layers - 1) ||
+					if ((ds->layer == Num_layers - 1) ||
 						!(OBSVAL(gridx, gridy, ds->layer + 1)
 						& NO_NET)) {
 
-					// Grid position is clear for placing a via
+					    // Grid position is clear for placing a via
 
-					Fprintf(stderr, "Tap position (%g, %g) appears"
-						" to be technically routable, so it"
-						" is being forced routable.\n",
-						dx, dy);
+					    if (orient == 0)
+						Fprintf(stderr, "Tap position (%g, %g)"
+						    " appears to be technically routable"
+						    " so it is being forced routable.\n",
+						    dx, dy);
+					    else
+						Fprintf(stderr, "Tap position (%g, %g)"
+						    " appears to be technically routable"
+						    " with alternate via, so it is being"
+						    " forced routable.\n", dx, dy);
 
-					OBSVAL(gridx, gridy, ds->layer) =
+					    OBSVAL(gridx, gridy, ds->layer) =
 						(OBSVAL(gridx, gridy, ds->layer)
 						& BLOCKED_MASK)
 						| (u_int)node->netnum;
-					lnode = SetNodeinfo(gridx, gridy, ds->layer);
-					lnode->nodeloc = node;
-					lnode->nodesav = node;
-					node->numtaps++;
+					    lnode = SetNodeinfo(gridx, gridy, ds->layer);
+					    lnode->nodeloc = node;
+					    lnode->nodesav = node;
+
+					    /* If we got to orient = 1, mark NI_NO_VIAX */
+					    if (orient == 1) lnode->flags |= NI_NO_VIAX;
+
+					    node->numtaps++;
+					}
 				    }
+				    gridy++;
 				}
-				gridy++;
 			    }
+			    gridx++;
 			}
-			gridx++;
 		    }
+		    /* If there's a solution, don't go looking at other vias */
+		    if (node->numtaps > 0) break;
 		}
 	    }
 	    if (node->numtaps == 0) {
@@ -168,145 +181,169 @@ count_reachable_taps()
 		double dist, mindist;
 		int dir, mask, tapx, tapy, tapl;
 
-		/* Initialize mindist to a large value */
-		mask = 0;
-		mindist = PitchX[Num_layers - 1] + PitchY[Num_layers - 1];
-		dir = 0;	/* Indicates no solution found */
+		/* Will try more than one via if available */
+		for (orient = 0; orient < 2; orient++) {
 
-		for (ds = g->taps[i]; ds; ds = ds->next) {
-		    deltax = 0.5 * LefGetViaWidth(ds->layer, ds->layer, 0);
-		    deltay = 0.5 * LefGetViaWidth(ds->layer, ds->layer, 1);
+		    /* Initialize mindist to a large value */
+		    mask = 0;
+		    mindist = PitchX[Num_layers - 1] + PitchY[Num_layers - 1];
+		    dir = 0;	/* Indicates no solution found */
 
-		    gridx = (int)((ds->x1 - Xlowerbound) / PitchX[ds->layer]) - 1;
-		    while (1) {
-			dx = (gridx * PitchX[ds->layer]) + Xlowerbound;
-			if (dx > ds->x2 || gridx >= NumChannelsX[ds->layer]) break;
+		    for (ds = g->taps[i]; ds; ds = ds->next) {
+			deltax = 0.5 * LefGetXYViaWidth(ds->layer, ds->layer, 0, orient);
+			deltay = 0.5 * LefGetXYViaWidth(ds->layer, ds->layer, 1, orient);
 
-			if (((dx - ds->x1 + EPS) > -deltax) &&
-				((ds->x2 - dx + EPS) > -deltax)) {
-			    gridy = (int)((ds->y1 - Ylowerbound)
+			gridx = (int)((ds->x1 - Xlowerbound) / PitchX[ds->layer]) - 1;
+			while (1) {
+			    dx = (gridx * PitchX[ds->layer]) + Xlowerbound;
+			    if (dx > ds->x2 || gridx >= NumChannelsX[ds->layer]) break;
+
+			    if (((dx - ds->x1 + EPS) > -deltax) &&
+					((ds->x2 - dx + EPS) > -deltax)) {
+				gridy = (int)((ds->y1 - Ylowerbound)
 					/ PitchY[ds->layer]) - 1;
 
-			    while (1) {
-				dy = (gridy * PitchY[ds->layer]) + Ylowerbound;
-				if (dy > ds->y2 || gridy >= NumChannelsY[ds->layer])
-				    break;
+				while (1) {
+				    dy = (gridy * PitchY[ds->layer]) + Ylowerbound;
+				    if (dy > ds->y2 || gridy >= NumChannelsY[ds->layer])
+					break;
 
-				// Check that the grid position is inside the
-				// tap rectangle.  However, if the point above
-				// the grid is blocked, then a via cannot be
-				// placed here, so skip it.
+				    // Check that the grid position is inside the
+				    // tap rectangle.  However, if the point above
+				    // the grid is blocked, then a via cannot be
+				    // placed here, so skip it.
 
-				if (((ds->layer == Num_layers - 1) ||
-					!(OBSVAL(gridx, gridy, ds->layer + 1)
-					& NO_NET)) &&
-					((dy - ds->y1 + EPS) > -deltay) &&
-					((ds->y2 - dy + EPS) > -deltay)) {
+				    if (((ds->layer == Num_layers - 1) ||
+						!(OBSVAL(gridx, gridy, ds->layer + 1)
+						& NO_NET)) &&
+						((dy - ds->y1 + EPS) > -deltay) &&
+						((ds->y2 - dy + EPS) > -deltay)) {
 
-				    // Grid point is inside tap geometry.
-				    // Since it did not pass the simple insideness
-				    // test previously, it can be assumed that
-				    // one of the edges is closer to the grid point
-				    // than 1/2 via width.  Find that edge and use
-				    // it to determine the offset.
+					// Grid point is inside tap geometry.
+					// Since it did not pass the simple insideness
+					// test previously, it can be assumed that
+					// one of the edges is closer to the grid point
+					// than 1/2 via width.  Find that edge and use
+					// it to determine the offset.
 
-				    // Check right edge
-				    if ((ds->x2 - dx + EPS) < deltax) {
-					dist = deltax - ds->x2 + dx;
-					// Confirm other edges
-					if ((dx - dist - deltax + EPS > ds->x1) &&
-					(dy - deltay + EPS > ds->y1) &&
-					(dy + deltay - EPS < ds->y2)) {
-					    if (dist < fabs(mindist)) {
-						mindist = dist;
-						mask = STUBROUTE;
-						dir = NI_STUB_EW;
-						tapx = gridx;
-						tapy = gridy;
-						tapl = ds->layer;
+					// Check right edge
+					if ((ds->x2 - dx + EPS) < deltax) {
+					    dist = deltax - ds->x2 + dx;
+					    // Confirm other edges
+					    if ((dx - dist - deltax + EPS > ds->x1) &&
+							(dy - deltay + EPS > ds->y1) &&
+							(dy + deltay - EPS < ds->y2)) {
+						if (dist < fabs(mindist)) {
+						    mindist = dist;
+						    mask = STUBROUTE;
+						    dir = NI_STUB_EW;
+						    tapx = gridx;
+						    tapy = gridy;
+						    tapl = ds->layer;
+						}
+					    }
+					}
+					// Check left edge
+					if ((dx - ds->x1 + EPS) < deltax) {
+					    dist = deltax - dx + ds->x1;
+					    // Confirm other edges
+					    if ((dx + dist + deltax - EPS < ds->x2) &&
+							(dy - deltay + EPS > ds->y1) &&
+							(dy + deltay - EPS < ds->y2)) {
+						if (dist < fabs(mindist)) {
+						    mindist = -dist;
+						    mask = STUBROUTE;
+						    dir = NI_STUB_EW;
+						    tapx = gridx;
+						    tapy = gridy;
+						    tapl = ds->layer;
+						}
+					    }
+					}
+					// Check top edge
+					if ((ds->y2 - dy + EPS) < deltay) {
+					    dist = deltay - ds->y2 + dy;
+					    // Confirm other edges
+					    if ((dx - deltax + EPS > ds->x1) &&
+						    (dx + deltax - EPS < ds->x2) &&
+						    (dy - dist - deltay + EPS > ds->y1)) {
+						if (dist < fabs(mindist)) {
+						    mindist = -dist;
+						    mask = STUBROUTE;
+						    dir = NI_STUB_NS;
+						    tapx = gridx;
+						    tapy = gridy;
+						    tapl = ds->layer;
+						}
+					    }
+					}
+					// Check bottom edge
+					if ((dy - ds->y1 + EPS) < deltay) {
+					    dist = deltay - dy + ds->y1;
+					    // Confirm other edges
+					    if ((dx - deltax + EPS > ds->x1) &&
+						    (dx + deltax - EPS < ds->x2) &&
+						    (dy + dist + deltay - EPS < ds->y2)) {
+						if (dist < fabs(mindist)) {
+					 	    mindist = dist;
+						    mask = STUBROUTE;
+						    dir = NI_STUB_NS;
+						    tapx = gridx;
+						    tapy = gridy;
+						    tapl = ds->layer;
+						}
 					    }
 					}
 				    }
-				    // Check left edge
-				    if ((dx - ds->x1 + EPS) < deltax) {
-					dist = deltax - dx + ds->x1;
-					// Confirm other edges
-					if ((dx + dist + deltax - EPS < ds->x2) &&
-					(dy - deltay + EPS > ds->y1) &&
-					(dy + deltay - EPS < ds->y2)) {
-					    if (dist < fabs(mindist)) {
-						mindist = -dist;
-						mask = STUBROUTE;
-						dir = NI_STUB_EW;
-						tapx = gridx;
-						tapy = gridy;
-						tapl = ds->layer;
-					    }
-					}
-				    }
-				    // Check top edge
-				    if ((ds->y2 - dy + EPS) < deltay) {
-					dist = deltay - ds->y2 + dy;
-					// Confirm other edges
-					if ((dx - deltax + EPS > ds->x1) &&
-					(dx + deltax - EPS < ds->x2) &&
-					(dy - dist - deltay + EPS > ds->y1)) {
-					    if (dist < fabs(mindist)) {
-						mindist = -dist;
-						mask = STUBROUTE;
-						dir = NI_STUB_NS;
-						tapx = gridx;
-						tapy = gridy;
-						tapl = ds->layer;
-					    }
-					}
-				    }
-				    // Check bottom edge
-				    if ((dy - ds->y1 + EPS) < deltay) {
-					dist = deltay - dy + ds->y1;
-					// Confirm other edges
-					if ((dx - deltax + EPS > ds->x1) &&
-					(dx + deltax - EPS < ds->x2) &&
-					(dy + dist + deltay - EPS < ds->y2)) {
-					    if (dist < fabs(mindist)) {
-						mindist = dist;
-						mask = STUBROUTE;
-						dir = NI_STUB_NS;
-						tapx = gridx;
-						tapy = gridy;
-						tapl = ds->layer;
-					    }
-					}
-				    }
+				    gridy++;
 				}
-				gridy++;
 			    }
+			    gridx++;
 			}
-			gridx++;
 		    }
-		}
 
-		/* Was a solution found? */
-		if (mask != 0) {
-		    // Grid position is clear for placing a via
+		    /* Was a solution found? */
+		    if (mask != 0) {
+			// Grid position is clear for placing a via
 
-		    Fprintf(stderr, "Tap position (%d, %d) appears to be"
+			Fprintf(stderr, "Tap position (%d, %d) appears to be"
 				" technically routable with an offset, so"
 				" it is being forced routable.\n",
 				tapx, tapy);
 
-		    OBSVAL(tapx, tapy, tapl) =
+			OBSVAL(tapx, tapy, tapl) =
 				(OBSVAL(tapx, tapy, tapl) & BLOCKED_MASK)
 				| mask | (u_int)node->netnum;
-		    lnode = SetNodeinfo(tapx, tapy, tapl);
-		    lnode->nodeloc = node;
-		    lnode->nodesav = node;
-		    lnode->stub = dist;
-		    lnode->flags |= dir;
-		    node->numtaps++;
+			lnode = SetNodeinfo(tapx, tapy, tapl);
+			lnode->nodeloc = node;
+			lnode->nodesav = node;
+			lnode->stub = dist;
+			lnode->flags |= dir;
+
+			/* If we got to orient = 1 then mark NI_NO_VIAX */
+			if (orient == 1) lnode->flags |= NI_NO_VIAX;
+
+			node->numtaps++;
+		    }
+
+		    /* If there's a solution, don't go looking at other vias */
+		    if (node->numtaps > 0) break;
 		}
 	    }
+	}
+    }
+
+    /* Last pass to output error messages for any taps that were not	*/
+    /* handled by the code above.					*/
+
+    for (g = Nlgates; g; g = g->next) {
+	for (i = 0; i < g->nodes; i++) {
+	    node = g->noderec[i];
+	    if (node == NULL) continue;
+	    if (node->numnodes == 0) continue;	 // e.g., vdd or gnd bus
 	    if (node->numtaps == 0) {
+		Fprintf(stderr, "Error: Node %s of net \"%s\" has no taps!\n",
+			print_node_name(node), node->netname);
 		Fprintf(stderr, "Qrouter will not be able to completely"
 			" route this net.\n");
 	    }

@@ -729,6 +729,7 @@ esac
 # -----------------------------------------------------------------------
 
 if test $usingTcl ; then
+   LIB_SPECS_NOSTUB="${LIB_SPECS}"
 
 # -----------------------------------------------------------------------
 #
@@ -740,9 +741,11 @@ if test $usingTcl ; then
   fi
   if test "${TK_LIB_DIR}" = "/usr/lib" -o \
         "${TK_LIB_DIR}" = "/usr/lib64" ; then
-    LIB_SPECS="${LIB_SPECS} ${TK_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} ${TK_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} ${TK_STUB_LIB_SPEC}"
   else
-    LIB_SPECS="${LIB_SPECS} -L${TK_LIB_DIR} ${TK_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} -L${TK_LIB_DIR} ${TK_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} -L${TK_LIB_DIR} ${TK_STUB_LIB_SPEC}"
     if test "x${loader_run_path}" = "x" ; then
       loader_run_path="${TK_LIB_DIR}"
     else
@@ -766,9 +769,11 @@ if test $usingTcl ; then
   if test "${TCL_LIB_DIR}" = "/usr/lib" -o \
         "${TCL_LIB_DIR}" = "/usr/lib64" -o \ 
         "${TCL_LIB_DIR}" = "${TK_LIB_DIR}" ; then
-    LIB_SPECS="${LIB_SPECS} ${TCL_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} ${TCL_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} ${TCL_STUB_LIB_SPEC}"
   else
-    LIB_SPECS="${LIB_SPECS} -L${TCL_LIB_DIR} ${TCL_LIB_SPEC}"
+    LIB_SPECS_NOSTUB="${LIB_SPECS_NOSTUB} -L${TCL_LIB_DIR} ${TCL_LIB_SPEC}"
+    LIB_SPECS="${LIB_SPECS} -L${TCL_LIB_DIR} ${TCL_STUB_LIB_SPEC}"
     if test "x${loader_run_path}" = "x" ; then
       loader_run_path="${TCL_LIB_DIR}"
     else
@@ -877,6 +882,7 @@ if test $usingTcl ; then
   AC_SUBST(LDFLAGS)
   AC_SUBST(INC_SPECS)
   AC_SUBST(LIB_SPECS)
+  AC_SUBST(LIB_SPECS_NOSTUB)
   AC_SUBST(TCL_LIB_DIR)
   AC_SUBST(TK_LIB_DIR)
   AC_SUBST(WISH_EXE)

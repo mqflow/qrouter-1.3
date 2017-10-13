@@ -632,7 +632,7 @@ void createMask(NET net, u_char slack, u_char halo)
      // Horizontal trunk
      orient |= 1;
 
-     ycent = analyzeCongestion(net->trunky, ymin, ymax, xmin, xmax);
+     ycent = analyzeCongestion(net->trunky, oymin, oymax, oxmin, oxmax);
      ymin = ymax = ycent;
      xmin = oxmin;
      xmax = oxmax;

@@ -244,6 +244,8 @@ struct nodeinfo_ {
 #define NI_OFFSET_NS	 0x04	// Tap offset north(+)/south(-)
 #define NI_OFFSET_EW	 0x08	// Tap offset east(+)/west(-)
 #define NI_OFFSET_MASK   0x0c	// Tap offset mask (N/S + E/W)
+#define NI_NO_VIAX   	 0x10	// Via in ViaX array is prohibited
+#define NI_NO_VIAY   	 0x20	// Via in ViaY array is prohibited
 
 struct node_ {
   NODE    next;

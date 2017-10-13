@@ -511,9 +511,10 @@ int
 Qrouter_Init(Tcl_Interp *interp)
 {
    int cmdidx;
-   Tk_Window tktop;
    char command[256];
    char version_string[20];
+   Tk_Window tktop;
+   char *nullgvar;
 
    /* Interpreter sanity checks */
    if (interp == NULL) return TCL_ERROR;
@@ -521,13 +522,23 @@ Qrouter_Init(Tcl_Interp *interp)
    /* Remember the interpreter */
    qrouterinterp = interp;
 
-   if (Tcl_InitStubs(interp, "8.1", 0) == NULL) return TCL_ERROR;
+   if (Tcl_InitStubs(interp, "8.5", 0) == NULL) return TCL_ERROR;
 
    strcpy(command, "qrouter::");
    
-   /* Create the start command */
+   /* NOTE:  Qrouter makes calls to Tk routines that may or may not	*/
+   /* exist, depending on whether qrouter was called with or without	*/
+   /* graphics.  We depend on the Tcl/Tk stubs methods to allow 	*/
+   /* qrouter to run without linking to Tk libraries.			*/
 
-   tktop = Tk_MainWindow(interp);
+   nullgvar = (char *)Tcl_GetVar(interp, "no_graphics_mode", TCL_GLOBAL_ONLY);
+   if ((nullgvar == NULL) || !strcasecmp(nullgvar, "false")) {
+      if (Tk_InitStubs(interp, "8.5", 0) == NULL) return TCL_ERROR;
+      tktop = Tk_MainWindow(interp);
+   }
+   else {
+      tktop = NULL;
+   }
 
    /* Create all of the commands (except "simple") */
 
@@ -538,11 +549,11 @@ Qrouter_Init(Tcl_Interp *interp)
 		(ClientData)tktop, (Tcl_CmdDeleteProc *) NULL);
    }
 
-   /* Command which creates a "simple" window.		*/
-
-   Tcl_CreateObjCommand(interp, "simple",
+   if (tktop != NULL) {
+      Tcl_CreateObjCommand(interp, "simple",
 		(Tcl_ObjCmdProc *)Tk_SimpleObjCmd,
 		(ClientData)tktop, (Tcl_CmdDeleteProc *) NULL);
+   }
 
    Tcl_Eval(interp, "lappend auto_path .");
 

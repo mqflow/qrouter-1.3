@@ -172,6 +172,7 @@ pathvia(FILE *cmd, int layer, int x, int y, int lastx, int lasty,
 {
     char *s;
     char checkersign = (gridx + gridy + layer) & 0x01;
+    NODEINFO lnode;
 
     if ((ViaPattern == VIA_PATTERN_NONE) || (ViaY[layer] == NULL))
 	s = ViaX[layer];
@@ -179,6 +180,19 @@ pathvia(FILE *cmd, int layer, int x, int y, int lastx, int lasty,
 	s = (checkersign == 0) ?  ViaX[layer] : ViaY[layer];
     else
 	s = (checkersign == 0) ?  ViaY[layer] : ViaX[layer];
+
+    /* If the position is a node, then the via type may be switched if	*/
+    /* there is a prohibition declared in the flags.			*/
+
+    if (layer < Pinlayers) {
+	if (((lnode = NODEIPTR(gridx, gridy, layer)) != NULL)
+			&& (lnode->nodesav != NULL)) {
+	    if ((lnode->flags & NI_NO_VIAX) && (s == ViaX[layer]))
+		s = ViaY[layer];
+	    if ((lnode->flags & NI_NO_VIAY) && (s == ViaY[layer]))
+		s = ViaX[layer];
+	}
+    }
 
     if (Pathon <= 0) {
        if (Pathon == -1)
@@ -597,6 +611,13 @@ static void cleanup_net(NET net)
 			&& (lnode->nodesav != NULL))
 	    fcheck = FALSE;
       }
+
+      /* This could be done if vias are always too close when	*/
+      /* placed on adjacent tracks.  However, that ignores the	*/
+      /* problem of vias with offsets, and it ignores the fact	*/
+      /* that adjacent vias on the same net are always a	*/
+      /* redundancy. 						*/
+
       xcheckf = needblock[lf] & VIABLOCKX;
       ycheckf = needblock[lf] & VIABLOCKY;
       if (!xcheckf && !ycheckf) fcheck = FALSE;
@@ -624,6 +645,7 @@ static void cleanup_net(NET net)
 			&& (lnode->nodesav != NULL))
 	    lcheck = FALSE;
       }
+
       xcheckl = needblock[ll] & VIABLOCKX;
       ycheckl = needblock[ll] & VIABLOCKY;
       if (!xcheckl && !ycheckl) lcheck = FALSE;
