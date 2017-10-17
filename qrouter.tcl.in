@@ -17,7 +17,11 @@ if {[string compare $tcl_platform(platform) "windows"] == 0} {
    set libext .so
 }
 
-load ${QROUTER_LIB_DIR}/qrouter$libext
+if {${tcl_version} >= 8.6} {
+   load -lazy ${QROUTER_LIB_DIR}/qrouter$libext
+} else {
+   load ${QROUTER_LIB_DIR}/qrouter$libext
+}
 package require Qrouter
 
 proc pushnamespace { name } {
