@@ -43,7 +43,7 @@ FindGateNode(Tcl_HashTable *NodeTable, NODE node, int *ridx)
     GATE g;
     Tcl_HashEntry *entry;
 
-    entry = Tcl_FindHashEntry(NodeTable, node);
+    entry = Tcl_FindHashEntry(NodeTable, (char *)node);
     if (entry) {
 	gn = (GATENODE)Tcl_GetHashValue(entry);
 	*ridx = gn->idx;
@@ -463,7 +463,7 @@ int write_delays(char *filename)
 	    gn = (GATENODE)malloc(sizeof(struct gatenode_));
 	    gn->idx = i;
 	    gn->gate = g;
-	    entry = Tcl_CreateHashEntry(&NodeTable, *(g->noderec + i), &new);
+	    entry = Tcl_CreateHashEntry(&NodeTable, (char *)(*(g->noderec + i)), &new);
 	    Tcl_SetHashValue(entry, gn);
 	}
     }

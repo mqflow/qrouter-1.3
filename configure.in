@@ -187,6 +187,7 @@ qrouter_with_tcl_libraries=""
 qrouter_with_tk_libraries=""
 
 usingTcl=1
+stub_defs=""
 
 AC_ARG_WITH(tcl,
 [ --with-tcl=DIR	Find tclConfig.sh in DIR], [
@@ -682,6 +683,7 @@ if test $usingTcl ; then
   ALL_TARGET="tcl"
   INSTALL_TARGET="install-tcl"
   AC_DEFINE(TCL_QROUTER)
+  stub_defs="$stub_defs -DUSE_TCL_STUBS -DUSE_TK_STUBS"
 else
   ALL_TARGET="nointerp"
   INSTALL_TARGET="install-nointerp"
@@ -877,6 +879,7 @@ if test $usingTcl ; then
   AC_SUBST(LD)
   AC_SUBST(LDDL_FLAGS)
   AC_SUBST(SHLIB_LIB_SPECS)
+  AC_SUBST(stub_defs)
 
   AC_SUBST(EXTRA_LIB_SPECS)
   AC_SUBST(LDFLAGS)

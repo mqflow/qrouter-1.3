@@ -173,7 +173,7 @@ int read_config(FILE *fconfig, int is_info)
     lines = 0;
 
     while (!feof(fconfig)) {
-	fgets(line, MAX_LINE_LEN, fconfig);
+	if (fgets(line, MAX_LINE_LEN, fconfig) == NULL) break;
 	lines++;
 	lineptr = line;
 	while (isspace(*lineptr)) lineptr++;

@@ -635,6 +635,7 @@ LIB_SPECS_NOSTUB
 LIB_SPECS
 INC_SPECS
 EXTRA_LIB_SPECS
+stub_defs
 SHLIB_LIB_SPECS
 LDDL_FLAGS
 LD
@@ -4089,6 +4090,7 @@ qrouter_with_tcl_libraries=""
 qrouter_with_tk_libraries=""
 
 usingTcl=1
+stub_defs=""
 
 
 # Check whether --with-tcl was given.
@@ -5403,6 +5405,7 @@ if test $usingTcl ; then
   INSTALL_TARGET="install-tcl"
   $as_echo "#define TCL_QROUTER 1" >>confdefs.h
 
+  stub_defs="$stub_defs -DUSE_TCL_STUBS -DUSE_TK_STUBS"
 else
   ALL_TARGET="nointerp"
   INSTALL_TARGET="install-nointerp"
@@ -5605,6 +5608,7 @@ fi
   if test "$with_gnu_ld" = "yes" ; then
     LDDL_FLAGS="${LDDL_FLAGS} -Wl,--version-script=symbol.map"
   fi
+
 
 
 
