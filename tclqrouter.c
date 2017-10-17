@@ -32,6 +32,7 @@ Tcl_Interp *qrouterinterp;
 Tcl_Interp *consoleinterp;
 
 int stepnet = -1;
+int batchmode = 0;
 
 /* Command structure */
 
@@ -535,9 +536,11 @@ Qrouter_Init(Tcl_Interp *interp)
    if ((nullgvar == NULL) || !strcasecmp(nullgvar, "false")) {
       if (Tk_InitStubs(interp, "8.5", 0) == NULL) return TCL_ERROR;
       tktop = Tk_MainWindow(interp);
+      batchmode = 0;
    }
    else {
       tktop = NULL;
+      batchmode = 1;
    }
 
    /* Create all of the commands (except "simple") */
@@ -601,7 +604,7 @@ qrouter_start(ClientData clientData, Tcl_Interp *interp,
     }
 
     result = runqrouter(argc, argv);
-    if (result == 0) GUI_init(interp);
+    if ((result == 0) && (batchmode == 0)) GUI_init(interp);
 
     for (i = 0; i < argc; i++)
         free(argv[i]);

@@ -32,7 +32,7 @@ static void createGC(Window, GC *, XFontStruct *);
 
 XFontStruct *font_info;
 Pixmap buffer = (Pixmap)0;
-Display *dpy;
+Display *dpy = NULL;
 Window win;
 Colormap cmap;
 GC gc;
@@ -58,6 +58,8 @@ void highlight(int x, int y) {
 
     int i, xspc, yspc, hspc;
     PROUTE *Pr;
+
+    if (dpy == NULL) return;
 
     // If Obs2[] at x, y is a source or dest, don't highlight
     // Do this only for layer 0;  it doesn't have to be rigorous. 
@@ -86,6 +88,8 @@ void highlight_source() {
     int xspc, yspc, hspc;
     int i, x, y;
     PROUTE *Pr;
+
+    if (dpy == NULL) return;
 
     if (Obs2[0] == NULL) return;
 
@@ -123,6 +127,8 @@ void highlight_dest() {
     int i, x, y;
     PROUTE *Pr;
 
+    if (dpy == NULL) return;
+
     if (Obs2[0] == NULL) return;
 
     // Determine the number of routes per width and height, if
@@ -158,6 +164,8 @@ void highlight_starts(POINT glist) {
     int xspc, yspc, hspc;
     POINT gpoint;
 
+    if (dpy == NULL) return;
+
     // Determine the number of routes per width and height, if
     // it has not yet been computed
 
@@ -186,6 +194,8 @@ void highlight_mask(void) {
     // Determine the number of routes per width and height, if
     // it has not yet been computed
 
+    if (dpy == NULL) return;
+
     hspc = spacing >> 1;
 
     // Draw destination pins as tan squares
@@ -209,6 +219,8 @@ map_obstruction()
 {
     int xspc, yspc, hspc;
     int i, x, y;
+
+    if (dpy == NULL) return;
 
     hspc = spacing >> 1;
 
@@ -254,6 +266,8 @@ map_congestion()
     int i, x, y, n, norm;
     u_char *Congestion;
     u_char value, maxval;
+
+    if (dpy == NULL) return;
 
     hspc = spacing >> 1;
 
@@ -309,6 +323,8 @@ map_estimate()
     int xspc, yspc, hspc;
     int i, x, y, nwidth, nheight, area, length, value;
     float density, *Congestion, norm, maxval;
+
+    if (dpy == NULL) return;
 
     hspc = spacing >> 1;
 
@@ -443,6 +459,8 @@ draw_net_nodes(NET net) {
     SEG lastbbox, bboxit;
     DPOINT tap;
     int first, w, h, n;
+
+    if (dpy == NULL) return;
 
     /* Compute bbox for each node and draw it */
     for (node = net->netnodes, n = 0; node != NULL; node = node->next, n++) {
