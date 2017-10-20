@@ -102,12 +102,13 @@ pathstart(FILE *cmd, int layer, int x, int y, u_char special, double oscale,
 	    if (wvia2 > wvia) wvia = wvia2;
          }
 
-         fprintf(cmd, "%s %g ( %g %g ) ", CIFLayer[layer],
-			invscale * (int)(oscale * wvia + 0.5),
-			invscale * x, invscale * y);
+         fprintf(cmd, "%s %ld ( %ld %ld ) ", CIFLayer[layer],
+			(long)(0.5 + invscale * oscale * wvia),
+			(long)(0.5 + invscale * x), (long)(0.5 + invscale * y));
       }
       else
-         fprintf(cmd, "%s ( %g %g ) ", CIFLayer[layer], invscale * x, invscale * y);
+         fprintf(cmd, "%s ( %ld %ld ) ", CIFLayer[layer],
+			(long)(0.5 + invscale * x), (long)(0.5 + invscale * y));
    }
    Pathon = 1;
 
@@ -145,14 +146,14 @@ pathto(FILE *cmd, int x, int y, int horizontal, int lastx, int lasty,
 
     fprintf(cmd, "( ");
     if (horizontal)
-	fprintf(cmd, "%g ", invscale * x);
+	fprintf(cmd, "%ld ", (long)(0.5 + invscale * x));
     else
 	fprintf(cmd, "* ");
 
     if (horizontal)
 	fprintf(cmd, "* ");
     else
-	fprintf(cmd, "%g ", invscale * y);
+	fprintf(cmd, "%ld ", (long)(0.5 + invscale * y));
 
     fprintf(cmd, ") ");
 
@@ -199,7 +200,8 @@ pathvia(FILE *cmd, int layer, int x, int y, int lastx, int lasty,
 	  fprintf(cmd, "+ ROUTED ");
        else 
 	  fprintf(cmd, "\n  NEW ");
-       fprintf(cmd, "%s ( %g %g ) ", CIFLayer[layer], invscale * x, invscale * y);
+       fprintf(cmd, "%s ( %ld %ld ) ", CIFLayer[layer],
+		(long)(0.5 + invscale * x), (long)(0.5 + invscale * y));
     }
     else {
        // Normally the path will be manhattan and only one of
