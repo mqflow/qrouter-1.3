@@ -611,9 +611,33 @@ qrouter_start(ClientData clientData, Tcl_Interp *interp,
     free(argv);
 
     if (scriptfile != NULL) {
-	result = Tcl_EvalFile(interp, scriptfile);
+
+	/* First check that the script file exists.  If not,	*/
+	/* then generate an error here.				*/
+
+	FILE *scriptf = fopen(scriptfile, "r");
+	if (scriptf == NULL) {
+	    Fprintf(stderr, "Script file \"%s\" unavaliable or unreadable.\n",
+			scriptfile);
+	    Tcl_SetResult(interp, "Script file unavailable or unreadable.", NULL);
+	    result = TCL_ERROR;
+	}
+	else {
+	    fclose(scriptf);
+	    result = Tcl_EvalFile(interp, scriptfile);
+	}
 	free(scriptfile);
-	if (result != TCL_OK) return result;
+
+	/* The script file should determine whether or not to	*/
+	/* exit by including the "quit" command.  But if there	*/
+	/* is an error in the script, then always quit.		*/
+
+	if (result != TCL_OK) {
+	    /* Make sure Tcl has generated all output */
+	    while (Tcl_DoOneEvent(TCL_DONT_WAIT) != 0);
+	    /* And exit gracefully */
+	    qrouter_quit(clientData, interp, 1, objv);
+	}
     }
 
     if ((DEFfilename != NULL) && (Nlgates == NULL)) {
