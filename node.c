@@ -375,14 +375,13 @@ void check_variable_pitch(int l, int *hptr, int *vptr)
    // will either have the same width or a larger width.  
 
    // Note that when "horizontal" (o = 1) is passed to LefGetViaWidth,
-   // it returns the via width side-to-side; but for horizontal routing
-   // the dimension of interest is the height of the via.  Therefore
-   // the direction argument passed to LefGetViaWidth is (1 - o).
+   // it returns the via width top-to-bottom (orient meaning is
+   // reversed for LefGetViaWidth), which is what we want. . .
 
    if (l == 0)
-	 wvia = LefGetViaWidth(l, l, (1 - o));
+	 wvia = LefGetViaWidth(l, l, o);
    else
-	 wvia = LefGetViaWidth(l - 1, l, (1 - o));
+	 wvia = LefGetViaWidth(l - 1, l, o);
 
    if (o == 1) {	// Horizontal route
       vpitch = LefGetRoutePitch(l);
