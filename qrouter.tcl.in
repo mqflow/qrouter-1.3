@@ -18,7 +18,9 @@ if {[string compare $tcl_platform(platform) "windows"] == 0} {
 }
 
 if {${tcl_version} >= 8.6} {
-   load -lazy ${QROUTER_LIB_DIR}/qrouter$libext
+   if {[catch {load ${QROUTER_LIB_DIR}/qrouter$libext}]} {
+      load -lazy ${QROUTER_LIB_DIR}/qrouter$libext
+   }
 } else {
    load ${QROUTER_LIB_DIR}/qrouter$libext
 }
