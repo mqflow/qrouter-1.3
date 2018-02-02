@@ -481,6 +481,7 @@ void   read_def(char *filename);
 
 #ifdef TCL_QROUTER
 int    write_delays(char *filename);
+int    write_spef(char *filename);
 #endif
 
 int    dofirststage(u_char graphdebug, int debug_netnum);
