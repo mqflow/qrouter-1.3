@@ -924,7 +924,7 @@ NETLIST find_colliding(NET net, int *ripnum)
 
    if ((nl != NULL) && (Verbose > 0)) {
       Fprintf(stdout, "Best route of %s collides with net%s: ",
-		net->netname, (rnum > 1) ? "" : "s");
+		net->netname, (rnum > 1) ? "s" : "");
       for (cnl = nl; cnl; cnl = cnl->next) {
          Fprintf(stdout, "%s ", cnl->net->netname);
       }
@@ -1030,11 +1030,11 @@ void analyze_route_overwrite(int x, int y, int lay, int netnum)
 			    /* so rip up the net now.			 */
 			    Fprintf(stderr, "Taking evasive action against net "
 					"%d\n", netnum);
-			    ripup_net(fnet, TRUE, FALSE);
+			    ripup_net(fnet, TRUE, FALSE, FALSE);
 			    return;
 			}
 			if ((sx == seg->x2) && (sy == seg->y2)) {
-			    if ((seg->segtype == ST_WIRE) || (l == (lay + 1))) break;
+			    if ((seg->segtype == ST_WIRE) || (l >= (lay + 1))) break;
 			    else l++;
 			}
 			else {
@@ -1052,6 +1052,57 @@ void analyze_route_overwrite(int x, int y, int lay, int netnum)
 }
 
 /*--------------------------------------------------------------*/
+/* Remove all route records from a net.				*/
+/*--------------------------------------------------------------*/
+
+void remove_routes(ROUTE netroutes, u_char flagged)
+{
+   ROUTE rt, rsave, rlast;
+   SEG seg;
+
+   /* Remove all flagged routing information from this net	*/
+   /* if "flagged" is true, otherwise remove all routing	*/
+   /* information.						*/
+
+   if (flagged && (netroutes != NULL)) {
+      rlast = NULL;
+      rsave = netroutes;
+      while (rsave) {
+	 if (rsave->flags & RT_RIP) {
+	    rt = rsave;
+	    if (rlast == NULL)
+		netroutes = rsave->next;
+	    else
+		rlast->next = rsave->next;
+	    rsave = rsave->next;
+	    while (rt->segments) {
+	       seg = rt->segments->next;
+	       free(rt->segments);
+	       rt->segments = seg;
+	    }
+	    free(rt);
+	 }
+	 else {
+	    rlast = rsave;
+	    rsave = rsave->next;
+	 }
+      }
+   }
+   else {
+      while (netroutes) {
+         rt = netroutes;
+         netroutes = rt->next;
+         while (rt->segments) {
+	    seg = rt->segments->next;
+	    free(rt->segments);
+	    rt->segments = seg;
+         }
+         free(rt);
+      }
+   }
+}
+
+/*--------------------------------------------------------------*/
 /* ripup_net ---						*/
 /*								*/
 /* Rip up the entire network located at position x, y, lay.	*/
@@ -1062,14 +1113,19 @@ void analyze_route_overwrite(int x, int y, int lay, int netnum)
 /*								*/
 /* If argument "flagged" is TRUE, then only remove routes	*/
 /* that have been flagged with RT_RIP.				*/
+/*								*/
+/* If argument "retain" is TRUE, then do not remove the route	*/
+/* records from the net.  This assumes that the calling routine	*/
+/* will retain them for possible replacement in case of route	*/
+/* failure.							*/
 /*--------------------------------------------------------------*/
 
-u_char ripup_net(NET net, u_char restore, u_char flagged)
+u_char ripup_net(NET net, u_char restore, u_char flagged, u_char retain)
 {
    int thisnet, oldnet, x, y, lay, dir;
    NODEINFO lnode;
    NODE node;
-   ROUTE rt, rsave, rlast;
+   ROUTE rt;
    SEG seg;
    DPOINT ntap;
 
@@ -1196,50 +1252,15 @@ u_char ripup_net(NET net, u_char restore, u_char flagged)
       }
    }
 
-   /* Remove all flagged routing information from this net	*/
-   /* if "flagged" is true, otherwise remove all routing	*/
-   /* information.						*/
+   if (retain == FALSE) {
 
-   if (flagged && (net->routes != NULL)) {
-      rlast = NULL;
-      rsave = net->routes;
-      while (rsave) {
-	 if (rsave->flags & RT_RIP) {
-	    rt = rsave;
-	    if (rlast == NULL)
-		net->routes = rsave->next;
-	    else
-		rlast->next = rsave->next;
-	    rsave = rsave->next;
-	    while (rt->segments) {
-	       seg = rt->segments->next;
-	       free(rt->segments);
-	       rt->segments = seg;
-	    }
-	    free(rt);
-	 }
-	 else {
-	    rlast = rsave;
-	    rsave = rsave->next;
-	 }
-      }
-   }
-   else {
-      while (net->routes) {
-         rt = net->routes;
-         net->routes = rt->next;
-         while (rt->segments) {
-	    seg = rt->segments->next;
-	    free(rt->segments);
-	    rt->segments = seg;
-         }
-         free(rt);
-      }
-   }
+      remove_routes(net->routes, flagged);
+      net->routes = NULL;
 
-   // If we just ripped out a few of the routes, make sure all the
-   // other net routes have not been overwritten.
-   if (flagged) writeback_all_routes(net);
+      // If we just ripped out a few of the routes, make sure all the
+      // other net routes have not been overwritten.
+      if (flagged) writeback_all_routes(net);
+   }
 
    // If this was a specialnet (numnodes set to 0), then routes are
    // considered fixed obstructions and cannot be removed.

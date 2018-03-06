@@ -1325,6 +1325,10 @@ qrouter_stage3(ClientData clientData, Tcl_Interp *interp,
     if (net == NULL)
 	failcount = dothirdstage(dodebug, stepnet, effort);
     else {
+        /* To do:  Duplicate behavior of dothirdstage(), which	*/
+	/* is to retain the original route solution and restore	*/
+	/* it in case the routing fails.			*/
+
 	if ((net != NULL) && (net->netnodes != NULL)) {
 	    result = doroute(net, (u_char)0, dodebug);
 	    failcount = (result == 0) ? 0 : 1;
@@ -1400,7 +1404,7 @@ qrouter_remove(ClientData clientData, Tcl_Interp *interp,
 	    case AllIdx:
 		for (i = 0; i < Numnets; i++) {
 		   net = Nlnets[i];
-		   ripup_net(net, (u_char)1, (u_char)1);
+		   ripup_net(net, (u_char)1, (u_char)1, (u_char)0);
 		}
 		draw_layout();
 		break;
@@ -1408,7 +1412,7 @@ qrouter_remove(ClientData clientData, Tcl_Interp *interp,
 		for (i = 2; i < objc; i++) {
 		    net = LookupNet(Tcl_GetString(objv[i]));
 		    if (net != NULL)
-			ripup_net(net, (u_char)1, (u_char)1);
+			ripup_net(net, (u_char)1, (u_char)1, (u_char)0);
 		}
 		draw_layout();
 		break;

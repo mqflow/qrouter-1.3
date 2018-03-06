@@ -903,7 +903,7 @@ static int ripup_colliding(NET net, u_char onlybreak)
 	nl2 = nl->next;
 	if (Verbose > 0)
             Fprintf(stdout, "Ripping up blocking net %s\n", nl->net->netname);
-	if (ripup_net(nl->net, TRUE, onlybreak) == TRUE) { 
+	if (ripup_net(nl->net, TRUE, onlybreak, FALSE) == TRUE) { 
 	    for (fn = FailedNets; fn && fn->next != NULL; fn = fn->next);
 	    if (fn)
 		fn->next = nl;
@@ -1121,7 +1121,7 @@ dosecondstage(u_char graphdebug, u_char singlestep, u_char onlybreak, u_int effo
 	 // Remove both routing information and remove the route from
 	 // Obs[] for all parts of the net that were previously routed
 
-	 ripup_net(net, TRUE, FALSE);	// Remove routing information from net
+	 ripup_net(net, TRUE, FALSE, FALSE);	// Remove routing information from net
 	 continue;
       }
 
@@ -1196,6 +1196,7 @@ int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
 {
    int i, failcount, remaining, result, maskSave;
    NET net;
+   ROUTE rt;
    NETLIST nl;
    u_int loceffort = (effort > minEffort) ? effort : minEffort;
 
@@ -1219,21 +1220,37 @@ int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
       net = getnettoroute(i);
       if ((net != NULL) && (net->netnodes != NULL)) {
 	 setBboxCurrent(net);
-	 ripup_net(net, FALSE, FALSE);
+	 ripup_net(net, FALSE, FALSE, TRUE);	/* retain = TRUE */
+	 // Set aside routes in case of failure.
+         rt = net->routes;
+	 net->routes = NULL;
+
 	 // set mask mode to BBOX, if auto
 	 maskSave = maskMode;
 	 if (maskMode == MASK_AUTO) maskMode = MASK_BBOX;
 	 result = doroute(net, FALSE, graphdebug);
 	 maskMode = maskSave;
 	 if (result == 0) {
-	    remaining--;
 	    if (Verbose > 0)
 	       Fprintf(stdout, "Finished routing net %s\n", net->netname);
+	    remaining--;
 	    Fprintf(stdout, "Nets remaining: %d\n", remaining);
+	    remove_routes(rt, FALSE);	/* original is no longer needed */
 	 }
 	 else {
 	    if (Verbose > 0)
-	       Fprintf(stdout, "Failed to route net %s\n", net->netname);
+	       Fprintf(stdout, "Failed to route net %s; restoring original\n",
+			net->netname);
+	    remove_routes(net->routes, FALSE);	/* should be NULL already */
+	    net->routes = rt;
+	    writeback_all_routes(net);	/* restore the original */
+	    remaining--;
+	    /* Pull net from FailedNets, since we restored it. */
+	    if (FailedNets && (FailedNets->net == net)) {
+	       nl = FailedNets->next;
+	       free(FailedNets);
+	       FailedNets = nl;
+	    }
 	 }
       }
       else {
