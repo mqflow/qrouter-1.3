@@ -693,33 +693,39 @@ int set_route_to_net_recursive(NET net, ROUTE rt, int newflags,
     if (rt->flags & RT_START_NODE) {
 	for (route = net->routes; route; route = route->next) {
 	    if (!(route->flags & RT_START_NODE) && (route->start.route == rt)) {
-		result = set_route_to_net(net, route, newflags, pushlist, bbox, stage);
+		result = set_route_to_net_recursive(net, route, newflags,
+				pushlist, bbox, stage);
 		if (result < 0) return result;
 	    }
 	    if (!(route->flags & RT_END_NODE) && (route->end.route == rt)) {
-		result = set_route_to_net(net, route, newflags, pushlist, bbox, stage);
+		result = set_route_to_net_recursive(net, route, newflags,
+				pushlist, bbox, stage);
 		if (result < 0) return result;
 	    }
 	}
     }
     else {
-	result = set_route_to_net(net, rt->start.route, newflags, pushlist, bbox, stage);
+	result = set_route_to_net_recursive(net, rt->start.route, newflags,
+			pushlist, bbox, stage);
 	if (result < 0) return result;
     }
     if (rt->flags & RT_END_NODE) {
 	for (route = net->routes; route; route = route->next) {
 	    if (!(route->flags & RT_START_NODE) && (route->start.route == rt)) {
-		result = set_route_to_net(net, route, newflags, pushlist, bbox, stage);
+		result = set_route_to_net_recursive(net, route, newflags,
+				pushlist, bbox, stage);
 		if (result < 0) return result;
 	    }
 	    if (!(route->flags & RT_END_NODE) && (route->end.route == rt)) {
-		result = set_route_to_net(net, route, newflags, pushlist, bbox, stage);
+		result = set_route_to_net_recursive(net, route, newflags,
+				pushlist, bbox, stage);
 		if (result < 0) return result;
 	    }
 	}
     }
     else {
-	result = set_route_to_net(net, rt->end.route, newflags, pushlist, bbox, stage);
+	result = set_route_to_net_recursive(net, rt->end.route, newflags,
+			pushlist, bbox, stage);
 	if (result < 0) return result;
     }
     return result;
