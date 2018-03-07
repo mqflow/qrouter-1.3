@@ -501,7 +501,6 @@ int write_delays(char *filename)
 	/* Count number of net routes */
 	numroutes = 0;
 	for (rt = net->routes; rt; rt = rt->next) numroutes++;
-
 	if (numroutes == 0) continue;	/* Ignore nets with no routes */
 
 	/* Marked as one driver node.  Not handling more than one driver yet. */

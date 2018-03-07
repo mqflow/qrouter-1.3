@@ -570,6 +570,11 @@ void print_nlnets( char *filename )
 /* is easier just to find any such instances and remove them by	*/
 /* eliminating one of the vias and adding a segment to connect	*/
 /* the route to the neighboring via.				*/
+/*								*/
+/* Note that the ensuing change in connectivity can violate	*/
+/* the route endpoints and thereby mess up the delay output	*/
+/* routine unless route_set_connections() is re-run on the	*/
+/* modified routes.						*/
 /*--------------------------------------------------------------*/
 
 static void cleanup_net(NET net)
@@ -578,10 +583,11 @@ static void cleanup_net(NET net)
    ROUTE rt, rt2;
    NODEINFO lnode;
    int lf, ll, lf2, ll2;
-   u_char fcheck, lcheck;
+   u_char fcheck, lcheck, needfix;
    u_char xcheckf, ycheckf, xcheckl, ycheckl; 
 
    lf = ll = lf2 = ll2 = -1;
+   needfix = FALSE;
 
    for (rt = net->routes; rt; rt = rt->next) {
       fcheck = lcheck = FALSE;
@@ -666,6 +672,7 @@ static void cleanup_net(NET net)
 		  if ((seg->layer == lf) || ((seg->layer + 1) == lf)) {
 		     if (xcheckf && (seg->y1 == segf->y1) &&
 				(ABSDIFF(seg->x1, segf->x1) == 1)) {
+			needfix = TRUE;
 			if (seg->layer != segf->layer) {
 
 			   // Adjacent vias are different types.
@@ -696,6 +703,7 @@ static void cleanup_net(NET net)
 		     }
 		     else if (ycheckf && (seg->x1 == segf->x1) &&
 				(ABSDIFF(seg->y1, segf->y1) == 1)) {
+			needfix = TRUE;
 			if (seg->layer != segf->layer) {
 			   // Adjacent vias are different types.
 			   // Deal with it by creating a route between
@@ -730,6 +738,7 @@ static void cleanup_net(NET net)
 		  if ((seg->layer == ll) || ((seg->layer + 1) == ll)) {
 		     if (xcheckl && (seg->y1 == segl->y1) &&
 				(ABSDIFF(seg->x1, segl->x1) == 1)) {
+			needfix = TRUE;
 			if (seg->layer != segl->layer) {
 
 			   // Adjacent vias are different types.
@@ -760,6 +769,7 @@ static void cleanup_net(NET net)
 		     }
 		     else if (ycheckl && (seg->x1 == segl->x1) &&
 				(ABSDIFF(seg->y1, segl->y1) == 1)) {
+			needfix = TRUE;
 			if (seg->layer != segl->layer) {
 
 			   // Adjacent vias are different types.
@@ -794,6 +804,9 @@ static void cleanup_net(NET net)
 	 }
       }
    }
+   if (needfix == TRUE)
+      for (rt = net->routes; rt; rt = rt->next)
+	 route_set_connections(net, rt);
 }
 
 /*--------------------------------------------------------------*/
