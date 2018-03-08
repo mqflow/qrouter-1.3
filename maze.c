@@ -1772,14 +1772,20 @@ route_set_connections(net, route)
 
    /* Does last route segment connect to a node? */
 
-   for (; seg->next; seg = seg->next);
+   /* NOTE:  Avoid the case where the route is exactly one via connecting */
+   /* a node to a route directly above, in which case the following code  */
+   /* would flag the node twice, incorrectly.				  */
+
    found = FALSE;
-   if (seg->layer < Pinlayers) {
-      lnode = NODEIPTR(seg->x2, seg->y2, seg->layer);
-      if (lnode != NULL) {
-	 route->end.node = lnode->nodesav;
-	 route->flags |= RT_END_NODE;
-	 found = TRUE;
+   if ((seg->next != NULL) || !(seg->segtype & ST_VIA)) {
+      for (; seg->next; seg = seg->next);
+      if (seg->layer < Pinlayers) {
+         lnode = NODEIPTR(seg->x2, seg->y2, seg->layer);
+         if (lnode != NULL) {
+	    route->end.node = lnode->nodesav;
+	    route->flags |= RT_END_NODE;
+	    found = TRUE;
+	 }
       }
    }
 
