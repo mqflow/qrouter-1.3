@@ -1219,6 +1219,22 @@ int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
 
       net = getnettoroute(i);
       if ((net != NULL) && (net->netnodes != NULL)) {
+
+	 // Simple optimization:  If every route has four or fewer
+	 // segments, then rerouting is almost certainly a waste of
+	 // time.
+
+	 for (rt = net->routes; rt; rt = rt->next) {
+	    int j;
+	    SEG seg = rt->segments;
+	    for (j = 0; j < 3; j++) {
+	       if (seg->next == NULL) break;
+	       seg = seg->next;
+	    }
+	    if (j == 3) break;
+	 }
+	 if (rt == NULL) continue;
+
 	 setBboxCurrent(net);
 	 ripup_net(net, FALSE, FALSE, TRUE);	/* retain = TRUE */
 	 // Set aside routes in case of failure.
