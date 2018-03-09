@@ -1180,11 +1180,13 @@ emit_routed_net(FILE *Cmd, NET net, u_char special, double oscale, int iscale)
 		  dir2 = OBSVAL(seg->next->x1, seg->next->y1, seg->next->layer) &
 					OFFSET_TAP;
 		  lnode2 = NODEIPTR(seg->next->x1, seg->next->y1, seg->next->layer);
-		  offset2 = lnode2->offset;
+		  if (lnode2 != NULL)
+		      offset2 = lnode2->offset;
 	       }
 	       else {
 		  lnode2 = NODEIPTR(seg->x2, seg->y2, seg->layer);
-		  offset2 = lnode2->offset;
+		  if (lnode2 != NULL)
+		      offset2 = lnode2->offset;
 	       }
 
 	       // Offset was calculated for vias;  plain metal routes
