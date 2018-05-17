@@ -1265,8 +1265,18 @@ emit_routed_net(FILE *Cmd, NET net, u_char special, double oscale, int iscale)
 				" at (%d %d) to (%d %d)\n", x, y, x2, y2);
 		     }
 		     if (special == (u_char)0) {
-			pathstart(Cmd, seg->layer, x, y, special, oscale, invscale,
-				horizontal);
+			if (lastseg && (lastseg->segtype & ST_OFFSET_START) &&
+				((lastx != x) || (lasty != y))) {
+			   /* Add bend and connect to offset via */
+			   int vertical = (horizontal) ? FALSE : TRUE;
+			   pathstart(Cmd, seg->layer, lastx, lasty, special,
+				oscale, invscale, vertical);
+			   pathto(Cmd, x, y, vertical, lastx, lasty, invscale);
+			}
+			else {
+			   pathstart(Cmd, seg->layer, x, y, special, oscale,
+				invscale, horizontal);
+			}
 			lastx = x;
 			lasty = y;
 			lastlay = seg->layer;

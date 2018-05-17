@@ -224,8 +224,8 @@ void clear_non_source_targets(NET net, POINT *pushlist)
 		      gpoint->x1 = x;
 		      gpoint->y1 = y;
 		      gpoint->layer = lay;
-		      gpoint->next = *pushlist;
-		      *pushlist = gpoint;
+		      gpoint->next = pushlist[1];
+		      pushlist[1] = gpoint;
 		   }
 		}
 	    }
@@ -355,9 +355,10 @@ count_targets(NET net)
 /* will be no way to route the net.				*/
 /*--------------------------------------------------------------*/
 
-int set_node_to_net(NODE node, int newflags, POINT *pushlist, SEG bbox, u_char stage)
+int set_node_to_net(NODE node, int newflags, POINT *pushlist,
+	SEG bbox, u_char stage)
 {
-    int x, y, lay, obsnet = 0;
+    int x, y, lay, rank, base, obsnet = 0;
     int result = 0;
     u_char found_one = FALSE;
     NODEINFO lnode;
@@ -419,6 +420,22 @@ int set_node_to_net(NODE node, int newflags, POINT *pushlist, SEG bbox, u_char s
 
 	  Pr->prdata.cost = (newflags == PR_SOURCE) ? 0 : MAXRT;
 
+	  // Rank the position according to how difficult it is to route to:
+	  //
+	  // 0: no restrictions
+	  // 1: requires a stub route
+	  // 2: inside the halo
+	  // 3: requires an offset
+	  // 4: requires an offset and a stub route
+
+	  rank = 0;
+          if (lay < Pinlayers) {
+	     if (lnode = NODEIPTR(x, y, lay)) {
+		if (lnode->flags & NI_OFFSET_MASK) rank = 2;
+		if (lnode->flags & NI_STUB_MASK) rank++;
+	     }
+          }
+
 	  // push this point on the stack to process
 
 	  if (pushlist != NULL) {
@@ -428,8 +445,8 @@ int set_node_to_net(NODE node, int newflags, POINT *pushlist, SEG bbox, u_char s
 	        gpoint->x1 = x;
 	        gpoint->y1 = y;
 	        gpoint->layer = lay;
-	        gpoint->next = *pushlist;
-		*pushlist = gpoint;
+	        gpoint->next = pushlist[rank];
+		pushlist[rank] = gpoint;
 	     }
 	  }
 	  found_one = TRUE;
@@ -456,10 +473,15 @@ int set_node_to_net(NODE node, int newflags, POINT *pushlist, SEG bbox, u_char s
        // Don't process extended areas if they coincide with other nodes,
        // or those that are out-of-bounds
 
+       base = 0;
        if (lay < Pinlayers) {
 	  lnode = NODEIPTR(x, y, lay);
 	  if (lnode == NULL) continue;
 	  if (lnode->nodesav != node) continue;
+
+	  // Otherwise, rank according to ease of reaching the tap.
+          if (lnode->flags & NI_OFFSET_MASK) base = 2;
+          if (lnode->flags & NI_STUB_MASK) base++;
        }
 
        Pr = &OBS2VAL(x, y, lay);
@@ -493,14 +515,10 @@ int set_node_to_net(NODE node, int newflags, POINT *pushlist, SEG bbox, u_char s
 	        gpoint->x1 = x;
 	        gpoint->y1 = y;
 	        gpoint->layer = lay;
-		if (found_one) {
-	            gpoint->next = pushlist[1];
-		    pushlist[1] = gpoint;
-		}
-		else {
-	            gpoint->next = *pushlist;
-		    *pushlist = gpoint;
-		}
+		rank = (found_one == TRUE) ? 2 + base : base;
+
+	        gpoint->next = pushlist[rank];
+		pushlist[rank] = gpoint;
 	     }
 	  }
 	  found_one = TRUE;
@@ -541,8 +559,8 @@ int set_node_to_net(NODE node, int newflags, POINT *pushlist, SEG bbox, u_char s
 }
 
 /*--------------------------------------------------------------*/
-/* Set all taps of node "node" to MAXNETNUM, so that it will not	*/
-/* be routed to. 						*/
+/* Set all taps of node "node" to MAXNETNUM, so that it will	*/
+/* not be routed to. 						*/
 /*--------------------------------------------------------------*/
 
 int disable_node_nets(NODE node)

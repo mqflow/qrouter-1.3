@@ -453,6 +453,49 @@ runqrouter(int argc, char *argv[])
 }
 
 /*--------------------------------------------------------------*/
+/* remove_from_failed ---					*/
+/*								*/
+/* Remove one net from the list of failing nets.  If "net" was	*/
+/* in the list FailedNets, then return TRUE, otherwise return	*/
+/* FALSE.							*/
+/*--------------------------------------------------------------*/
+
+u_char remove_from_failed(NET net)
+{
+    NETLIST nl, lastnl;
+
+    lastnl = (NETLIST)NULL;
+    for (nl = FailedNets; nl; nl = nl->next) {
+	if (nl->net == net) {
+	    if (lastnl == NULL)
+		FailedNets = nl->next;
+	    else
+		lastnl->next = nl->next;
+	    free(nl);
+	    return TRUE;
+	}
+	lastnl = nl;
+    }
+    return FALSE;
+}
+
+/*--------------------------------------------------------------*/
+/* remove_failed ---						*/
+/*								*/
+/* Free up memory in the list of route failures.		*/
+/*--------------------------------------------------------------*/
+
+void remove_failed()
+{
+    NETLIST nl;
+    while (FailedNets) {
+	nl = FailedNets;
+	FailedNets = FailedNets->next;
+	free(nl);
+    }
+}
+
+/*--------------------------------------------------------------*/
 /* reinitialize ---						*/
 /*								*/
 /* Free up memory in preparation for reading another DEF file	*/
@@ -493,11 +536,7 @@ static void reinitialize()
 
     // Free the netlist of failed nets (if there is one)
 
-    while (FailedNets) {
-	nl = FailedNets;
-	FailedNets = FailedNets->next;
-	free(nl);
-    }
+    remove_failed();
 
     // Free all net and route information
 
@@ -771,13 +810,7 @@ int dofirststage(u_char graphdebug, int debug_netnum)
    // Clear the lists of failed routes, in case first
    // stage is being called more than once.
 
-   if (debug_netnum <= 0) {
-      while (FailedNets) {
-         nl = FailedNets->next;
-         free(FailedNets);
-         FailedNets = nl;
-      }
-   }
+   if (debug_netnum <= 0) remove_failed();
 
    // Now find and route all the nets
 
@@ -1195,20 +1228,11 @@ dosecondstage(u_char graphdebug, u_char singlestep, u_char onlybreak, u_int effo
 int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
 {
    int i, failcount, remaining, result, maskSave;
+   u_char failed;
    NET net;
    ROUTE rt;
    NETLIST nl;
    u_int loceffort = (effort > minEffort) ? effort : minEffort;
-
-   // Clear the lists of failed routes
-
-   if (debug_netnum <= 0) {
-      while (FailedNets) {
-         nl = FailedNets->next;
-         free(FailedNets);
-         FailedNets = nl;
-      }
-   }
 
    // Now find and route all the nets
 
@@ -1218,22 +1242,30 @@ int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
    for (i = (debug_netnum >= 0) ? debug_netnum : 0; i < Numnets; i++) {
 
       net = getnettoroute(i);
+      failed = remove_from_failed(net);
       if ((net != NULL) && (net->netnodes != NULL)) {
 
 	 // Simple optimization:  If every route has four or fewer
 	 // segments, then rerouting is almost certainly a waste of
 	 // time.
 
-	 for (rt = net->routes; rt; rt = rt->next) {
-	    int j;
-	    SEG seg = rt->segments;
-	    for (j = 0; j < 3; j++) {
-	       if (seg->next == NULL) break;
-	       seg = seg->next;
+	 if (!failed) {
+	    for (rt = net->routes; rt; rt = rt->next) {
+	       int j;
+	       SEG seg = rt->segments;
+	       for (j = 0; j < 3; j++) {
+	          if (seg->next == NULL) break;
+	          seg = seg->next;
+	       }
+	       if (j == 3) break;
 	    }
-	    if (j == 3) break;
+	    if (rt == NULL) {
+	       if (Verbose > 0)
+	          Fprintf(stdout, "Keeping route for net %s\n", net->netname);
+	       remaining--;
+	       continue;
+	    }
 	 }
-	 if (rt == NULL) continue;
 
 	 setBboxCurrent(net);
 	 ripup_net(net, FALSE, FALSE, TRUE);	/* retain = TRUE */
@@ -1253,7 +1285,7 @@ int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
 	    Fprintf(stdout, "Nets remaining: %d\n", remaining);
 	    remove_routes(rt, FALSE);	/* original is no longer needed */
 	 }
-	 else {
+	 else if (!failed) {
 	    if (Verbose > 0)
 	       Fprintf(stdout, "Failed to route net %s; restoring original\n",
 			net->netname);
@@ -1267,6 +1299,10 @@ int dothirdstage(u_char graphdebug, int debug_netnum, u_int effort)
 	       free(FailedNets);
 	       FailedNets = nl;
 	    }
+	 }
+	 else {
+	    if (Verbose > 0)
+	       Fprintf(stdout, "Failed to route net %s.\n", net->netname);
 	 }
       }
       else {
@@ -1502,8 +1538,8 @@ static int next_route_setup(struct routeinfo_ *iroute, u_char stage)
 	else {
 	    result = set_powerbus_to_net(iroute->nsrc->netnum);
 	    clear_target_node(iroute->nsrc);
-	    rval = set_node_to_net(iroute->nsrc, PR_SOURCE, &iroute->glist[0],
-			&iroute->bbox, stage);
+	    rval = set_node_to_net(iroute->nsrc, PR_SOURCE,
+			&iroute->glist[0], &iroute->bbox, stage);
 	    if (rval == -2) {
 		if (forceRoutable) {
 		    make_routable(iroute->nsrc);
@@ -1524,8 +1560,8 @@ static int next_route_setup(struct routeinfo_ *iroute, u_char stage)
 
      // Set positions on last route to PR_SOURCE
      if (rt) {
-	result = set_route_to_net(iroute->net, rt, PR_SOURCE, &iroute->glist[0],
-			&iroute->bbox, stage);
+	result = set_route_to_net(iroute->net, rt, PR_SOURCE,
+			&iroute->glist[0], &iroute->bbox, stage);
 
         if (result == -2) {
 	   unable_to_route(iroute->net->netname, NULL, 0);
@@ -1564,7 +1600,7 @@ static int next_route_setup(struct routeinfo_ *iroute, u_char stage)
      // If any target is found during the search, but is not the
      // target that is chosen for the minimum-cost path, then it
      // will be left marked "processed" and never visited again.
-     // Make sure this doesn't happen my clearing the "processed"
+     // Make sure this doesn't happen by clearing the "processed"
      // flag from all such target nodes, and placing the positions
      // on the stack for processing again.
 
@@ -1652,8 +1688,8 @@ static int route_setup(struct routeinfo_ *iroute, u_char stage)
      if (iroute->do_pwrbus == FALSE) {
 
 	// Set node to PR_SOURCE
-	rval = set_node_to_net(iroute->nsrc, PR_SOURCE, &iroute->glist[0],
-		&iroute->bbox, stage);
+	rval = set_node_to_net(iroute->nsrc, PR_SOURCE,
+		&iroute->glist[0], &iroute->bbox, stage);
 
         if (rval == -2) {
 	   unable_to_route(iroute->net->netname, NULL, 0);
@@ -1670,8 +1706,7 @@ static int route_setup(struct routeinfo_ *iroute, u_char stage)
         result = 0;
         for (node = iroute->net->netnodes; node; node = node->next) {
 	   if (node == iroute->nsrc) continue;
-           rval = set_node_to_net(node, PR_TARGET, NULL,
-			&iroute->bbox, stage);
+           rval = set_node_to_net(node, PR_TARGET, NULL, &iroute->bbox, stage);
            if (rval == 0) {
 	      result = 1;
            }
@@ -1696,8 +1731,8 @@ static int route_setup(struct routeinfo_ *iroute, u_char stage)
      else {	/* Do this for power bus connections */
 
         while(1) {
-           rval = set_node_to_net(iroute->nsrc, PR_SOURCE, &iroute->glist[0],
-			&iroute->bbox, stage);
+           rval = set_node_to_net(iroute->nsrc, PR_SOURCE,
+			&iroute->glist[0], &iroute->bbox, stage);
 	   if (rval == -2) {
 	      iroute->nsrc = iroute->nsrc->next;
 	      if (iroute->nsrc == NULL) break;
