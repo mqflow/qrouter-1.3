@@ -1744,6 +1744,7 @@ DefRead(char *inName)
     float oscale;
     double start, step;
     double llx, lly, urx, ury;
+    double dXlowerbound, dYlowerbound, dXupperbound, dYupperbound;
     char corient = '.';
     DSEG diearea;
 
@@ -1935,12 +1936,9 @@ DefRead(char *inName)
 			PitchX[curlayer + 1] = PitchX[curlayer];
 		    llx = start;
 		    urx = start + step * channels;
-		    // Fix, 5/24/2013:  Set bounds according to the tracks,
-		    // since we really don't care about the die area.  But,
-		    // we should make sure this is consistent across layers. . .
-		    // if (llx < Xlowerbound)
+		    if ((llx / oscale) < Xlowerbound)
 			Xlowerbound = llx / oscale;
-		    // if (urx > Xupperbound)
+		    if ((urx / oscale) > Xupperbound)
 			Xupperbound = urx / oscale;
 		}
 		else {
@@ -1951,9 +1949,9 @@ DefRead(char *inName)
 			PitchY[curlayer + 1] = PitchY[curlayer];
 		    lly = start;
 		    ury = start + step * channels;
-		    // if (lly < Ylowerbound)
+		    if ((lly / oscale) < Ylowerbound)
 			Ylowerbound = lly / oscale;
-		    // if (ury > Yupperbound)
+		    if ((ury / oscale) > Yupperbound)
 			Yupperbound = ury / oscale;
 		}
 		LefEndStatement(f);
@@ -1972,10 +1970,15 @@ DefRead(char *inName)
 		break;
 	    case DEF_DIEAREA:
 		diearea = LefReadRect(f, 0, oscale); // no current layer, use 0
-		Xlowerbound = diearea->x1;
-		Ylowerbound = diearea->y1;
-		Xupperbound = diearea->x2;
-		Yupperbound = diearea->y2;
+		dXlowerbound = diearea->x1;
+		dYlowerbound = diearea->y1;
+		dXupperbound = diearea->x2;
+		dYupperbound = diearea->y2;
+		/* Seed actual lower/upper bounds with the midpoint */
+		Xlowerbound = (diearea->x1 + diearea->x2) / 2;
+		Ylowerbound = (diearea->y1 + diearea->y2) / 2;
+		Xupperbound = Xlowerbound;
+		Yupperbound = Ylowerbound;
 		LefEndStatement(f);
 		break;
 	    case DEF_PROPERTYDEFINITIONS:
@@ -2056,6 +2059,16 @@ DefRead(char *inName)
     if (Verbose > 0)
 	Fprintf(stdout, "DEF read: Processed %d lines.\n", lefCurrentLine);
     LefError(NULL);	/* print statement of errors, if any, and reset */
+
+    /* If there were no TRACKS statements, then use the DIEAREA */
+    if (Xlowerbound == Xupperbound) {
+	Xlowerbound = dXlowerbound;
+	Xupperbound = dXupperbound;
+    }
+    if (Ylowerbound == Yupperbound) {
+	Ylowerbound = dYlowerbound;
+	Yupperbound = dYupperbound;
+    }
 
     /* Cleanup */
 
