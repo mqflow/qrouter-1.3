@@ -245,10 +245,10 @@ DefAddRoutes(FILE *f, float oscale, NET net, char special)
 					(valid == TRUE)) {
 				s = LefGetRouteSpacing(routeLayer); 
 				drect = (DSEG)malloc(sizeof(struct dseg_));
-				drect->x1 = x + lr->x1 - s;
-				drect->x2 = x + lr->x2 + s;
-				drect->y1 = y + lr->y1 - s;
-				drect->y2 = y + lr->y2 + s;
+				drect->x1 = x + (lr->x1 / 2.0) - s;
+				drect->x2 = x + (lr->x2 / 2.0) + s;
+				drect->y1 = y + (lr->y1 / 2.0) - s;
+				drect->y2 = y + (lr->y2 / 2.0) + s;
 				drect->layer = routeLayer;
 				drect->next = UserObs;
 				UserObs = drect;
