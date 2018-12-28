@@ -127,6 +127,20 @@ post_config(void)
 } /* post_config() */
 
 /*--------------------------------------------------------------*/
+/* Append to string list					*/
+/*--------------------------------------------------------------*/
+
+void string_list_append(STRING *lst, const char *s)
+{
+    STRING n, strl;
+    n = (STRING)malloc(sizeof(struct string_));
+    n->name = strdup(s);
+    n->next = NULL;
+    while (*lst) lst = &(*lst)->next;
+    *lst = n;
+}
+
+/*--------------------------------------------------------------*/
 /* read_config - read in the config file        		*/
 /*								*/
 /*         ARGS: the filename (normally route.cfg)		*/
@@ -312,44 +326,17 @@ int read_config(FILE *fconfig, int is_info)
 
 	if ((i = sscanf(lineptr, "do not route node %s\n", sarg)) == 1) {
 	    OK = 1; 
-	    dnr = (STRING)malloc(sizeof(struct string_));
-	    dnr->name = strdup(sarg);
-	    if (DontRoute != NULL) {
-	       for (strl = DontRoute; strl->next; strl = strl->next);
-	       strl->next = dnr;
-	    }
-	    else {
-	       dnr->next = NULL;
-	       DontRoute = dnr;
-	    }
+	    string_list_append(&DontRoute, sarg);
 	}
 	
 	if ((i = sscanf(lineptr, "route priority %s\n", sarg)) == 1) {
 	    OK = 1; 
-	    cn = (STRING)malloc(sizeof(struct string_));
-	    cn->name = strdup(sarg);
-	    if (CriticalNet != NULL) {
-	       for (strl = CriticalNet; strl->next; strl = strl->next);
-	       strl->next = cn;
-	    }
-	    else {
-	       cn->next = NULL;
-	       CriticalNet = cn;
-	    }
+	    string_list_append(&CriticalNet, sarg);
 	}
 	
 	if ((i = sscanf(lineptr, "critical net %s\n", sarg)) == 1) {
 	    OK = 1; 
-	    cn = (STRING)malloc(sizeof(struct string_));
-	    cn->name = strdup(sarg);
-	    if (CriticalNet != NULL) {
-	       for (strl = CriticalNet; strl->next; strl = strl->next);
-	       strl->next = cn;
-	    }
-	    else {
-	       cn->next = NULL;
-	       CriticalNet = cn;
-	    }
+	    string_list_append(&CriticalNet, sarg);
 	}
 
 	// Search for "no stack".  This allows variants like "no stacked

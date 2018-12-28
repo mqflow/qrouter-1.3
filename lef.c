@@ -1096,7 +1096,7 @@ LefReadLayers(f, obstruct, lreturn)
 	    /* CLASS_VIA in lefl record is a cut, and the layer */
 	    /* geometry is ignored for the purpose of routing.	*/
 
-	    if (lefl->lefClass != CLASS_VIA)
+	    if ((!lefl) || (lefl->lefClass != CLASS_VIA))
 		LefError("Don't know how to parse layer \"%s\"\n", token);
 	}
     }
